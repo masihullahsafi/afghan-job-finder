@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { QuizQuestion } from "../types";
 
 // --- INTERFACES ---
@@ -17,7 +17,7 @@ const apiKey = process.env.API_KEY || '';
 
 // Initialize the Google Generative AI client with the key.
 // This instance ('ai') will be used for all subsequent API calls.
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenerativeAI(apiKey);
 
 // --- UTILITIES ---
 
@@ -58,14 +58,12 @@ export const generateJobDescription = async (title: string, skills: string): Pro
     // Construct the prompt. We give the AI a persona ("professional") and context ("Afghan job market").
     const prompt = `Write a professional job description for a "${title}" position requiring the following skills: "${skills}". Include a brief summary, key responsibilities, and requirements. Keep it professional and suitable for the Afghan job market.`;
     
-    // Call the API. We use 'gemini-2.5-flash' because it's fast and good for text generation.
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
+    // Call the API. We use 'gemini-1.5-flash' because it's fast and good for text generation.
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(prompt);
 
     // Return the generated text, or a fallback message if empty.
-    return response.text || "Could not generate description.";
+    return response.response.text() || "Could not generate description.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error generating description. Please try again.";
@@ -97,17 +95,11 @@ export const suggestScreeningQuestions = async (jobTitle: string, jobDescription
     
     Return ONLY a JSON array of strings. Example: ["Question 1?", "Question 2?"]`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      // We enforce JSON output structure using responseMimeType
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(prompt);
 
     // Parse the JSON text response into a real JavaScript array.
-    const text = response.text || "[]";
+    const text = response.response.text() || "[]";
     try {
       return JSON.parse(text);
     } catch (e) {
@@ -134,11 +126,9 @@ export const improveResumeSummary = async (currentSummary: string): Promise<stri
     
     Current Summary: "${currentSummary}"`;
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-    return response.text || currentSummary;
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(prompt);
+    return response.response.text() || currentSummary;
    } catch (error) {
      console.error("Gemini API Error:", error);
      return "Error improving summary. Please try again.";
@@ -162,15 +152,10 @@ export const generateExperienceBulletPoints = async (jobTitle: string, company: 
     
     Return ONLY a JSON array of strings. Example: ["Managed a team of 10...", "Increased sales by 20%..."]`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(prompt);
 
-    const text = response.text || "[]";
+    const text = response.response.text() || "[]";
     try {
       return JSON.parse(text);
     } catch (e) {
@@ -210,26 +195,24 @@ export const generateCoverLetter = async (
     3. Focus on why the candidate is a good fit.
     4. Return ONLY the body of the cover letter (no placeholders like [Your Name]).`;
 
-    // Setup content parts. If resume exists, we send [Image/PDF Part, Text Part].
-    let contents: any = [{ text: textPrompt }];
+    // Setup content parts. If resume exists, we send [Text Part, Image/PDF Part].
+    let parts: any = [textPrompt];
 
     if (resumeBase64 && resumeMimeType) {
-      contents = [
+      parts = [
+        textPrompt,
         {
           inlineData: {
             mimeType: resumeMimeType,
             data: resumeBase64
           }
-        },
-        { text: textPrompt }
+        }
       ];
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: { parts: contents },
-    });
-    return response.text || "Could not generate cover letter.";
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(parts);
+    return response.response.text() || "Could not generate cover letter.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error generating cover letter. Please try again.";
@@ -265,20 +248,13 @@ export const validateResume = async (fileBase64: string, mimeType: string): Prom
        "reason": "Short explanation for the user if invalid (e.g., 'Document does not appear to be a resume', 'Missing contact info'). If valid, reason can be empty." 
      }`;
 
-     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          { inlineData: { mimeType, data: fileBase64 } },
-          { text: prompt }
-        ]
-      },
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
+     const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+     const response = await model.generateContent([
+       prompt,
+       { inlineData: { mimeType, data: fileBase64 } }
+     ]);
 
-    const text = response.text || "{}";
+    const text = response.response.text() || "{}";
     try {
       const result = JSON.parse(text);
       return result;
@@ -313,20 +289,13 @@ export const parseResumeProfile = async (fileBase64: string, mimeType: string): 
         
         If a field is not found, exclude it from the JSON.`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [
-                    { inlineData: { mimeType, data: fileBase64 } },
-                    { text: prompt }
-                ]
-            },
-            config: {
-                responseMimeType: 'application/json'
-            }
-        });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const response = await model.generateContent([
+          prompt,
+          { inlineData: { mimeType, data: fileBase64 } }
+        ]);
 
-        const text = response.text || "{}";
+        const text = response.response.text() || "{}";
         return JSON.parse(text);
     } catch (e) {
         console.error("Resume parsing failed", e);
@@ -382,15 +351,10 @@ export const generateInterviewQuestions = async (
     
     Return ONLY a JSON array of strings. Example: ["Question 1", "Question 2"]`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: contextPrompt,
-      config: {
-        responseMimeType: 'application/json'
-      }
-    });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(contextPrompt);
 
-    const text = response.text || "[]";
+    const text = response.response.text() || "[]";
     try {
        const parsed = JSON.parse(text);
        return parsed;
@@ -431,12 +395,10 @@ export const evaluateInterviewAnswer = async (question: string, answer: string, 
     
     Keep it encouraging but professional.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const response = await model.generateContent(prompt);
 
-    return response.text || "Could not evaluate answer.";
+    return response.response.text() || "Could not evaluate answer.";
   } catch (error) {
     console.error("Gemini API Error (Eval):", error);
     return "Error evaluating answer.";
@@ -466,13 +428,10 @@ export const analyzeJobMatch = async (jobTitle: string, jobDesc: string, userPro
             "missingSkills": ["List 2-3 missing requirements"]
         }`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const response = await model.generateContent(prompt);
 
-        const text = response.text || "{}";
+        const text = response.response.text() || "{}";
         return JSON.parse(text);
     } catch (e) {
         console.error("Match analysis failed", e);
@@ -498,13 +457,10 @@ export const generateCareerPath = async (currentRole: string): Promise<{title: s
             ...
         ]`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const response = await model.generateContent(prompt);
 
-        const text = response.text || "[]";
+        const text = response.response.text() || "[]";
         return JSON.parse(text);
     } catch (e) {
         console.error("Career path generation failed", e);
@@ -536,13 +492,10 @@ export const generateSkillQuiz = async (topic: string): Promise<QuizQuestion[]> 
             }
         ]`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const response = await model.generateContent(prompt);
 
-        const text = response.text || "[]";
+        const text = response.response.text() || "[]";
         return JSON.parse(text);
     } catch (e) {
         console.error("Quiz generation failed", e);
@@ -570,13 +523,10 @@ export const analyzeArticleSEO = async (content: string, title: string): Promise
             "keywords": ["5-7 relevant keywords"]
         }`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const response = await model.generateContent(prompt);
 
-        const text = response.text || "{}";
+        const text = response.response.text() || "{}";
         return JSON.parse(text);
     } catch (e) {
         return { seoTitle: title, seoDescription: content.substring(0, 150), keywords: [] };

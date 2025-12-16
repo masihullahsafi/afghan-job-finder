@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppContext } from b'../context/AppContext';
-import { generateJobDescription, analyzeArticleSEO, fileToBase64 } from '../services/geminiService';
+import { useAppContext } from '../../context/AppContext';
+import { generateJobDescription, analyzeArticleSEO } from '../../services/geminiService';
 import { uploadFile } from '../services/api';
-import { Plus, FileText, Users, Eye, Settings, Edit2, Trash2, Search, X, CheckCircle, AlertTriangle, CreditCard, Lock, Download, MapPin, Calendar, Camera, Shield, Upload, Star, Bookmark, BarChart2, Video, PenTool, Megaphone, Briefcase, File, Flame, AlignLeft, AlignCenter, AlignRight, ChevronLeft, ChevronRight, RotateCcw, Image, Bold, Italic, Underline, List, LayoutList, MoreVertical, XCircle, ArrowRight } from 'lucide-react';
-import { Job, BlogPost, Application, User } from '../types';
+import { Plus, FileText, Users, Eye, Settings, Edit2, Trash2, Search, X, CheckCircle, CreditCard, Download, Calendar, Camera, Shield, Upload, Bookmark, BarChart2, PenTool, Megaphone, ArrowRight, Bold, Italic, LayoutList, XCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Job, BlogPost, Application, User } from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { CVTemplates } from '../components/CVTemplates';
-import { AlertModal } from '../components/AlertModal';
+import { CVTemplates } from '../../components/CVTemplates';
+import { AlertModal } from '../../components/AlertModal';
 
 export const EmployerDashboard: React.FC = () => {
-  const { user, t, jobs, applications, addJob, updateJob, deleteJob, updateApplicationStatus, updateApplicationMeta, updateUserProfile, uploadVerificationDoc, upgradeUserPlan, cities, categories, allUsers, addPost, toggleSaveCandidate, announcements } = useAppContext();
+  const { user, t, jobs, applications, addJob, updateJob, deleteJob, updateApplicationStatus, updateApplicationMeta, updateUserProfile, uploadVerificationDoc, cities, categories, allUsers, addPost, toggleSaveCandidate, announcements } = useAppContext();
   const navigate = useNavigate();
   
   // Tabs
@@ -26,7 +26,6 @@ export const EmployerDashboard: React.FC = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
 
   // Data Selections
-  const [selectedPlan, setSelectedPlan] = useState<'Standard' | 'Premium' | null>(null);
   const [selectedJobIdForApps, setSelectedJobIdForApps] = useState<string | null>(null);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [analyticsJob, setAnalyticsJob] = useState<Job | null>(null);
@@ -88,12 +87,6 @@ export const EmployerDashboard: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Payment Form
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
   // Search Filters
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
@@ -104,7 +97,6 @@ export const EmployerDashboard: React.FC = () => {
 
   // Refs
   const editorRef = useRef<HTMLDivElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const licenseInputRef = useRef<HTMLInputElement>(null);
 
@@ -268,8 +260,6 @@ export const EmployerDashboard: React.FC = () => {
   };
 
   const handleViewCandidate = (candidate: User) => { setSelectedCandidate(candidate); setShowCandidateModal(true); };
-  const handleOpenAppReview = (app: Application) => { setReviewApp(app); setReviewNotes(app.employerNotes || ''); setReviewRating(app.employerRating || 0); setShowAppReviewModal(true); };
-  const handleSaveReview = () => { if(reviewApp) { updateApplicationMeta(reviewApp.id, { employerNotes: reviewNotes, employerRating: reviewRating }); setShowAppReviewModal(false); } };
   
   const handleUpdateProfile = (e: React.FormEvent) => { 
       e.preventDefault(); 
@@ -296,7 +286,7 @@ export const EmployerDashboard: React.FC = () => {
 
   // Article
   const execCmd = (command: string, value: string | undefined = undefined) => { document.execCommand(command, false, value); editorRef.current?.focus(); };
-  const handleImageUploadArticle = async (e: React.ChangeEvent<HTMLInputElement>) => { if(e.target.files && e.target.files[0]) { try { const url = await uploadFile(e.target.files[0]); const imgHtml = `<img src="${url}" class="max-w-full h-auto rounded-lg my-4" />`; document.execCommand('insertHTML', false, imgHtml); } catch(err) { console.error(err); } } };
+  
   const handleSubmitArticle = async (e: React.FormEvent) => { e.preventDefault(); if (!editorRef.current) return; const content = editorRef.current.innerHTML; if(!content.trim() || !articleTitle) return; setIsSubmittingArticle(true); const seo = await analyzeArticleSEO(content, articleTitle); const newPost: BlogPost = { id: Date.now(), title: articleTitle, content: content, excerpt: content.replace(/<[^>]+>/g, '').substring(0, 150) + "...", date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), author: user.name, authorId: user.id, role: "Employer", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", category: articleCategory || "General", readTime: Math.ceil(content.split(' ').length / 200) + " min read", status: 'Pending', seoTitle: seo.seoTitle, seoDescription: seo.seoDescription, seoKeywords: seo.keywords }; addPost(newPost); setIsSubmittingArticle(false); setArticleTitle(''); if(editorRef.current) editorRef.current.innerHTML = ''; showAlert("Success", "Article submitted.", 'success'); setActiveTab('jobs'); };
 
   return (

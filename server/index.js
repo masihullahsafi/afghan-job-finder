@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const streamifier = require('streamifier');
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const path = require('path');
 
 const app = express();
@@ -21,7 +21,7 @@ cloudinary.config({
 });
 
 const upload = multer({ storage: multer.memoryStorage() }); 
-const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const aiClient = new GoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // --- MIDDLEWARE ---
 app.use(helmet({

@@ -1,25 +1,23 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { FileText, Calendar, Building, MapPin, CheckCircle, XCircle, Eye, Clock, Sparkles, Loader2, X, Edit2, Save, Bell, Trash2, Plus, Copy, Check, Camera, Mail, Phone, Upload, Download, Briefcase, Star, ChevronRight, PenTool, AlertTriangle, Award, MessageSquare, Users, UserPlus, TrendingUp, Printer, File, FolderOpen, LogOut, MessageCircle, Megaphone, Info, Gift, Heart, Layout, LayoutDashboard } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { improveResumeSummary } from '../services/geminiService';
+import { useAppContext } from '../../context/AppContext';
+import { FileText, Calendar, Briefcase, ChevronRight, Loader2, X, Edit2, Camera, Upload, Download, FolderOpen, LogOut, MessageSquare, Eye, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { improveResumeSummary } from '../../services/geminiService';
 import { uploadFile } from '../services/api'; 
-import { JobAlert, UserRole, UserDocument, InterviewSession, Experience, Education, Job, User } from '../types';
-import { InterviewModal } from '../components/InterviewModal';
-import { CVTemplates } from '../components/CVTemplates';
+import { UserDocument, User } from '../../types';
+import { CVTemplates } from '../../components/CVTemplates';
 
 declare var html2pdf: any;
 
 export const SeekerDashboard: React.FC = () => {
-  const { user, t, jobs, applications, jobAlerts, addJobAlert, deleteJobAlert, updateUserProfile, withdrawApplication, cities, categories, allUsers, sendChatMessage, toggleFollowCompany, logout, interviewSessions, reviews, deleteReview, announcements, savedJobIds, toggleSaveJob } = useAppContext();
+  const { user, t, jobs, applications, updateUserProfile, logout, interviewSessions } = useAppContext();
   const navigate = useNavigate();
   // ... existing states ...
   const [activeTab, setActiveTab] = useState<'applications' | 'interviews' | 'alerts' | 'documents' | 'saved' | 'following' | 'reviews'>('applications');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showCVModal, setShowCVModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
-  const [showAlertModal, setShowAlertModal] = useState(false);
   const [cvTheme, setCvTheme] = useState<'Modern' | 'Professional' | 'Creative' | 'Minimal'>('Professional');
   const [isUploading, setIsUploading] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
@@ -49,7 +47,6 @@ export const SeekerDashboard: React.FC = () => {
   if (!user || user.role !== 'SEEKER') return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-red-600 font-bold mb-4">{t('accessDenied')}</p><button onClick={() => navigate('/auth')} className="text-primary-600 hover:underline">Go to Login</button></div>;
 
   const myApps = applications.filter(app => app.seekerId === user.id).map(app => ({ ...app, job: jobs.find(j => j.id === app.jobId) }));
-  const myInterviews = interviewSessions.filter(s => s.userId === user.id);
   const upcomingInterviews = myApps.filter(a => a.status === 'Interview' && a.interviewDate);
   const handleLogout = () => { logout(); navigate('/'); };
   const handleDownloadPDF = () => { const element = document.getElementById('cv-preview-content'); if (element) { html2pdf().set({ margin: 0, filename: `${user.name}_CV.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save(); } };
@@ -98,7 +95,7 @@ export const SeekerDashboard: React.FC = () => {
 
           // If this is their first resume, or they want it to be primary
           if (currentDocs.length === 0 || confirm("Set this as your primary resume?")) {
-              updateData.resumeUrl = fileUrl; // Save URL for primary resume
+              updateData.resumeData = fileUrl; // Save URL for primary resume
               updateData.resume = file.name;
           }
 
