@@ -9,11 +9,11 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const streamifier = require('streamifier');
 const { GoogleGenAI } = require("@google/genai");
+const path = require('path');
 
 const app = express();
 
 // --- CONFIGURATION ---
-// These keys come from Render Environment Variables
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -24,9 +24,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // --- MIDDLEWARE ---
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, 
+}));
 app.use(cors({
-    origin: '*', // Allow all origins for simplicity in this stage
+    origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -47,8 +49,8 @@ const UserSchema = new mongoose.Schema({
   id: String, firstName: String, lastName: String, name: String,
   email: { type: String, unique: true }, role: String, avatar: String, bio: String, title: String,
   password: { type: String, required: true }, 
-  resumeData: String, // Deprecated, kept for backward compat
-  resumeUrl: String, // Cloudinary URL
+  resumeData: String, 
+  resumeUrl: String, 
   plan: String, status: String,
   isVerified: { type: Boolean, default: false }, verificationToken: String,
   verificationStatus: { type: String, default: 'Unverified' },
@@ -71,13 +73,14 @@ const Application = mongoose.model('Application', ApplicationSchema);
 
 // --- DB CONNECTION ---
 const connectDB = async () => {
+  // If running locally without Mongo, don't crash
   if (!process.env.MONGO_URI) {
-    console.log("⚠️ MONGO_URI missing. Database features disabled.");
+    console.log("⚠️ MONGO_URI missing. Using in-memory mode (data will not persist).");
     return;
   }
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ Connected to MongoDB Atlas");
+    console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ MongoDB Error:", err.message);
   }
@@ -103,12 +106,10 @@ const streamUpload = (buffer) => {
 
 // --- API ROUTES ---
 
-// Health Check
-app.get('/', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.send('Afghan Job Finder Backend is Running!');
 });
 
-// File Upload
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file provided" });
@@ -120,7 +121,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// AI Proxy
 app.post('/api/ai/generate', async (req, res) => {
   try {
     const { prompt, model = 'gemini-2.5-flash', config } = req.body;
@@ -132,8 +132,6 @@ app.post('/api/ai/generate', async (req, res) => {
     res.status(500).json({ error: "AI Generation Failed" });
   }
 });
-
-// --- AUTH & DATA ---
 
 app.post('/api/login', async (req, res) => {
   const { email, password, role } = req.body;
@@ -167,7 +165,6 @@ app.post('/api/register', async (req, res) => {
   } catch (e) { res.status(500).json({ message: "Registration failed: " + e.message }); }
 });
 
-// Standard CRUD
 app.get('/api/jobs', async (req, res) => {
   try { const jobs = await Job.find().sort({ postedDate: -1 }); res.json(jobs); } 
   catch(e) { res.status(500).json({error: e.message}) }
@@ -213,10 +210,17 @@ app.put('/api/applications/:id', async (req, res) => {
   catch(e) { res.status(500).json({error: e.message}) }
 });
 
-// Verification Upload Endpoint (Helper)
 app.post('/api/upload-verification', async (req, res) => {
-    // This is handled by the generic upload, but kept if you need specific logic later
     res.json({success: true}); 
+});
+
+// --- SERVE FRONTEND (STATIC FILES) ---
+// This serves the React build files
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Handle all other routes by returning the React app (Client-side routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
