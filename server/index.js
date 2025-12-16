@@ -8,7 +8,7 @@ const helmet = require('helmet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const streamifier = require('streamifier');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 const path = require('path');
 
 const app = express();
@@ -21,7 +21,10 @@ cloudinary.config({
 });
 
 const upload = multer({ storage: multer.memoryStorage() }); 
-const aiClient = new GoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini AI only if key exists to prevent crash
+const aiClient = process.env.GEMINI_API_KEY 
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) 
+  : null;
 
 // --- MIDDLEWARE ---
 app.use(helmet({
@@ -124,7 +127,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 app.post('/api/ai/generate', async (req, res) => {
   try {
     const { prompt, model = 'gemini-2.5-flash', config } = req.body;
-    if (!process.env.GEMINI_API_KEY) return res.status(503).json({ text: "AI Service Unavailable" });
+    if (!aiClient) return res.status(503).json({ text: "AI Service Unavailable (Missing Key)" });
     const response = await aiClient.models.generateContent({ model, contents: prompt, config });
     res.json({ text: response.text });
   } catch (error) {
@@ -215,13 +218,16 @@ app.post('/api/upload-verification', async (req, res) => {
 });
 
 // --- SERVE FRONTEND (STATIC FILES) ---
-// This serves the React build files
-app.use(express.static(path.join(__dirname, '../dist')));
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
 
-// Handle all other routes by returning the React app (Client-side routing)
+// Handle all other routes by returning the React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Serving static files from: ${distPath}`);
+});
