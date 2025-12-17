@@ -1,9 +1,10 @@
 
 // This service handles communication with our Backend API
 
-// In production, we look for VITE_API_URL. In development, we use the local proxy.
-// We cast import.meta to 'any' to avoid TypeScript errors if types aren't set up perfectly.
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
+// We use a relative path '/api'. 
+// In Development: Vite proxy forwards this to http://localhost:5050/api
+// In Production: The Express server serves the frontend and handles /api routes on the same port.
+const API_BASE = '/api';
 
 /**
  * Uploads a file to the backend, which sends it to Cloudinary.
