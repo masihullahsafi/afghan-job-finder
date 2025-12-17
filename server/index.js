@@ -233,9 +233,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Change port to 5000 to avoid conflict with process 0 (job-finder-api) which is on 3000
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+// FORCE PORT 5000 to bypass potential PM2/Env variable conflicts on 3000
+const PORT = 5000; 
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving static files from: ${distPath}`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is busy. Attempting to start on 5001...`);
+    app.listen(5001, '0.0.0.0', () => {
+        console.log('Server running on port 5001');
+    });
+  } else {
+    console.error('Server error:', err);
+  }
 });
