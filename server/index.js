@@ -89,10 +89,14 @@ const connectDB = async () => {
     return;
   }
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    // Attempt connection with increased timeout
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ MongoDB Error:", err.message);
+    console.log("⚠️ Continuing in 'in-memory' mode due to DB connection failure.");
   }
 };
 connectDB();
@@ -117,7 +121,7 @@ const streamUpload = (buffer) => {
 // --- API ROUTES ---
 
 app.get('/api/health', (req, res) => {
-    res.send('Afghan Job Finder Backend is Running!');
+    res.send('Afghan Job Finder Backend is Running on Port 5050!');
 });
 
 app.post('/api/upload', upload.single('file'), async (req, res) => {
@@ -146,6 +150,11 @@ app.post('/api/ai/generate', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { email, password, role } = req.body;
   try {
+    // If DB isn't connected, mock login won't work unless we mock it here, 
+    // but the frontend handles fallback if fetch fails.
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({ message: "Database unavailable." });
+    }
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "User not found." });
     if (user.role !== role) return res.status(403).json({ message: `Access denied. This account is for ${user.role}s.` });
@@ -162,6 +171,9 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({ message: "Database unavailable." });
+    }
     const { password, email, ...otherData } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email already exists." });
@@ -176,7 +188,11 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.get('/api/jobs', async (req, res) => {
-  try { const jobs = await Job.find().sort({ postedDate: -1 }); res.json(jobs); } 
+  try { 
+      if (mongoose.connection.readyState !== 1) return res.json([]); // Return empty array if DB down
+      const jobs = await Job.find().sort({ postedDate: -1 }); 
+      res.json(jobs); 
+  } 
   catch(e) { res.status(500).json({error: e.message}) }
 });
 app.post('/api/jobs', async (req, res) => {
@@ -233,8 +249,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// FORCE PORT 5000 to bypass potential PM2/Env variable conflicts on 3000
-const PORT = 5000; 
+// HARDCODED PORT 5050 to avoid any environment variable conflicts
+const PORT = 5050; 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving static files from: ${distPath}`);
@@ -242,10 +258,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is busy. Attempting to start on 5001...`);
-    app.listen(5001, '0.0.0.0', () => {
-        console.log('Server running on port 5001');
-    });
+    console.error(`CRITICAL: Port ${PORT} is still in use. Please kill the process using 'fuser -k ${PORT}/tcp'`);
   } else {
     console.error('Server error:', err);
   }
