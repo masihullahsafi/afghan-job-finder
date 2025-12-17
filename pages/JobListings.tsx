@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { Filter, MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, X, ArrowUpDown, Scale } from 'lucide-react';
+import { Filter, MapPin, DollarSign, Clock, Bookmark, ChevronLeft, ChevronRight, X, ArrowUpDown, Scale } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { AdBanner } from '../components/AdBanner';
 import { UserRole } from '../types';
@@ -295,7 +295,7 @@ export const JobListings: React.FC = () => {
                         className={`p-2 rounded-full shadow-sm border transition-all duration-200 ${isSaved ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-400 border-gray-100 hover:border-primary-200 hover:text-primary-600'}`}
                         title={isSaved ? "Unsave" : "Save"}
                       >
-                        {isSaved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+                        {isSaved ? <Bookmark size={18} className="fill-current" /> : <Bookmark size={18} />}
                       </button>
                   </div>
                 </div>

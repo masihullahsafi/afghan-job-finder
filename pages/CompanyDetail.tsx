@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { MapPin, Globe, Briefcase, Bookmark, BookmarkCheck, ArrowRight, Mail, Phone, ExternalLink, ArrowLeft, Star, MessageSquare, Plus, X, BookOpen, Calendar, Facebook, Twitter, Linkedin, Check, Image as ImageIcon, Play, PlayCircle } from 'lucide-react';
+import { MapPin, Globe, Briefcase, Bookmark, ArrowRight, Mail, Phone, ExternalLink, ArrowLeft, Star, MessageSquare, Plus, X, BookOpen, Calendar, Facebook, Twitter, Linkedin, Check, Image as ImageIcon, Play, PlayCircle } from 'lucide-react';
 import { AdBanner } from '../components/AdBanner';
 import { SEO } from '../components/SEO';
 import { Review, UserRole } from '../types';
@@ -287,7 +287,7 @@ export const CompanyDetail: React.FC = () => {
                                             onClick={(e) => { e.stopPropagation(); toggleSaveJob(job.id); }}
                                             className={`p-2 rounded-full transition ${isSaved ? 'text-primary-600 bg-primary-50' : 'text-gray-300 hover:text-primary-600 hover:bg-gray-50'}`}
                                         >
-                                            {isSaved ? <BookmarkCheck size={20}/> : <Bookmark size={20}/>}
+                                            {isSaved ? <Bookmark size={20} className="fill-current"/> : <Bookmark size={20}/>}
                                         </button>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">

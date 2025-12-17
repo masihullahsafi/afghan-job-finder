@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { MapPin, Briefcase, Calendar, Building, CheckCircle, Upload, X, Bookmark, BookmarkCheck, Sparkles, Loader2, FileText, Check, AlertTriangle, Share2, Flag, ArrowRight, MessageSquare, ShieldCheck, BarChart2, AlertCircle, ArrowLeft, DollarSign, Clock, Users, Linkedin, Facebook, Twitter, Copy, Mail, Flame } from 'lucide-react';
+import { MapPin, Briefcase, Calendar, Building, CheckCircle, Upload, X, Bookmark, Sparkles, Loader2, FileText, Check, AlertTriangle, Share2, Flag, ArrowRight, MessageSquare, ShieldCheck, BarChart2, AlertCircle, ArrowLeft, DollarSign, Clock, Users, Linkedin, Facebook, Twitter, Copy, Mail, Flame } from 'lucide-react';
 import { Application, Report, UserRole } from '../types';
 import { generateCoverLetter, analyzeJobMatch, MatchAnalysisResult, fileToBase64, validateResume } from '../services/geminiService';
 import { SEO } from '../components/SEO';
@@ -278,7 +278,7 @@ export const JobDetail: React.FC = () => {
 
                   <div className="flex gap-2 w-full md:w-auto hidden md:flex">
                       <button onClick={() => toggleSaveJob(job.id)} className={`p-3 rounded-xl border transition ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
-                          {isSaved ? <BookmarkCheck size={20}/> : <Bookmark size={20}/>}
+                          {isSaved ? <Bookmark size={20} className="fill-current"/> : <Bookmark size={20}/>}
                       </button>
                       <button onClick={handleShare} className="p-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition" title="Share">
                           {copied ? <Check size={20} className="text-green-600"/> : <Share2 size={20}/>}
@@ -561,7 +561,7 @@ export const JobDetail: React.FC = () => {
       {/* Sticky Bottom Bar for Mobile */}
       <div className="fixed bottom-[60px] left-0 w-full bg-white border-t border-gray-200 p-4 md:hidden z-40 flex gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <button onClick={() => toggleSaveJob(job.id)} className={`p-3 rounded-xl border flex-shrink-0 transition ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-              {isSaved ? <BookmarkCheck size={20}/> : <Bookmark size={20}/>}
+              {isSaved ? <Bookmark size={20} className="fill-current"/> : <Bookmark size={20}/>}
           </button>
           {hasApplied ? (
               <button disabled className="flex-1 bg-green-100 text-green-700 rounded-xl font-bold flex items-center justify-center gap-2">
