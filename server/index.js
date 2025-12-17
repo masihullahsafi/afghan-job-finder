@@ -233,7 +233,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
+// Change port to 5000 to avoid conflict with process 0 (job-finder-api) which is on 3000
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving static files from: ${distPath}`);
