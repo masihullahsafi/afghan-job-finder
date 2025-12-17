@@ -8,8 +8,15 @@ const helmet = require('helmet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const streamifier = require('streamifier');
-const { GoogleGenAI } = require("@google/genai");
 const path = require('path');
+
+let GoogleGenAI;
+try {
+  const genAIModule = require("@google/genai");
+  GoogleGenAI = genAIModule.GoogleGenAI;
+} catch (e) {
+  console.warn("⚠️ Google GenAI module not found or failed to load. AI features will be disabled.", e.message);
+}
 
 const app = express();
 
@@ -21,8 +28,8 @@ cloudinary.config({
 });
 
 const upload = multer({ storage: multer.memoryStorage() }); 
-// Initialize Gemini AI only if key exists to prevent crash
-const aiClient = process.env.GEMINI_API_KEY 
+// Initialize Gemini AI only if key exists and module loaded
+const aiClient = (process.env.GEMINI_API_KEY && GoogleGenAI)
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) 
   : null;
 
@@ -127,7 +134,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 app.post('/api/ai/generate', async (req, res) => {
   try {
     const { prompt, model = 'gemini-2.5-flash', config } = req.body;
-    if (!aiClient) return res.status(503).json({ text: "AI Service Unavailable (Missing Key)" });
+    if (!aiClient) return res.status(503).json({ text: "AI Service Unavailable (Missing Key or Module)" });
     const response = await aiClient.models.generateContent({ model, contents: prompt, config });
     res.json({ text: response.text });
   } catch (error) {
