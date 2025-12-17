@@ -3,7 +3,6 @@
 
 // In production, we look for VITE_API_URL. In development, we use the local proxy.
 // We cast import.meta to 'any' to avoid TypeScript errors if types aren't set up perfectly.
-// Using optional chaining (?.) for env to prevent crashes if it's undefined.
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
 /**
