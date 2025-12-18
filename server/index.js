@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -15,7 +14,7 @@ try {
   const genAIModule = require("@google/genai");
   GoogleGenAI = genAIModule.GoogleGenAI;
 } catch (e) {
-  console.warn("⚠️ Google GenAI module not found or failed to load. AI features will be disabled.", e.message);
+  console.warn("⚠️ Google GenAI module not found. AI features will be disabled.");
 }
 
 const app = express();
@@ -28,7 +27,6 @@ cloudinary.config({
 });
 
 const upload = multer({ storage: multer.memoryStorage() }); 
-// Initialize Gemini AI only if key exists and module loaded
 const aiClient = (process.env.GEMINI_API_KEY && GoogleGenAI)
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) 
   : null;
@@ -59,22 +57,15 @@ const UserSchema = new mongoose.Schema({
   id: String, firstName: String, lastName: String, name: String,
   email: { type: String, unique: true }, role: String, avatar: String, bio: String, title: String,
   password: { type: String, required: true }, 
-  resumeData: String, 
-  resumeUrl: String, 
-  plan: String, status: String,
-  isVerified: { type: Boolean, default: false }, verificationToken: String,
-  verificationStatus: { type: String, default: 'Unverified' },
-  verificationDocument: String, jobTitle: String, phone: String, country: String, city: String,
-  address: String, dob: String, website: String, industry: String, companyDetails: Object,
-  youtubeUrl: String, banner: String, socialLinks: Object, gallery: [String], verifiedSkills: [String],
-  experience: Array, education: Array, documents: Array, settings: Object, following: [String], savedCandidates: [String]
+  resumeData: String, resumeUrl: String, plan: String, status: String,
+  isVerified: { type: Boolean, default: false }, verificationStatus: { type: String, default: 'Unverified' },
+  verificationDocument: String, jobTitle: String, phone: String, city: String, address: String,
+  website: String, industry: String, youtubeUrl: String, banner: String, verifiedSkills: [String]
 });
 
 const ApplicationSchema = new mongoose.Schema({
   id: String, jobId: String, seekerId: String, employerId: String, 
-  resumeUrl: String, coverLetter: String, status: String, date: String, interviewDate: String,
-  interviewTime: String, interviewMessage: String, employerNotes: String,
-  employerRating: Number, timeline: Array, screeningAnswers: Array, rejectionReason: String
+  resumeUrl: String, status: String, date: String, timeline: Array
 });
 
 const Job = mongoose.model('Job', JobSchema);
@@ -83,183 +74,57 @@ const Application = mongoose.model('Application', ApplicationSchema);
 
 // --- DB CONNECTION ---
 const connectDB = async () => {
-  // If running locally without Mongo, don't crash
-  if (!process.env.MONGO_URI) {
-    console.log("⚠️ MONGO_URI missing. Using in-memory mode (data will not persist).");
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    console.log("⚠️ MONGO_URI missing. Using in-memory mode.");
     return;
   }
   try {
-    // Attempt connection with increased timeout
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000
-    });
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ MongoDB Error:", err.message);
-    console.log("⚠️ Continuing in 'in-memory' mode due to DB connection failure.");
+    if (err.message.includes('ENOTFOUND') || err.message.includes('SRV')) {
+      console.error("💡 HINT: DNS SRV resolution failed. Your host cannot resolve the MongoDB cluster URL.");
+      console.error("👉 FIX: Try using a standard connection string (mongodb://) instead of (mongodb+srv://).");
+    }
+    console.log("⚠️ Continuing in 'in-memory' mode.");
   }
 };
 connectDB();
 
-// --- HELPER: CLOUDINARY UPLOAD ---
-const streamUpload = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: "afghan_job_finder" },
-      (error, result) => {
-        if (result) {
-          resolve(result);
-        } else {
-          reject(error);
-        }
-      }
-    );
-    streamifier.createReadStream(buffer).pipe(stream);
-  });
-};
-
 // --- API ROUTES ---
+app.get('/api/health', (req, res) => res.send('API Active'));
 
-app.get('/api/health', (req, res) => {
-    res.send('Afghan Job Finder Backend is Running on Port 5050!');
-});
-
-app.post('/api/upload', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file provided" });
-    const result = await streamUpload(req.file.buffer);
-    res.json({ url: result.secure_url, public_id: result.public_id, format: result.format });
-  } catch (error) {
-    console.error("Upload Error:", error);
-    res.status(500).json({ error: "File upload failed" });
-  }
+app.get('/api/jobs', async (req, res) => {
+  try { 
+      if (mongoose.connection.readyState !== 1) return res.json([]);
+      const jobs = await Job.find({ status: 'Active' }).sort({ postedDate: -1 }); 
+      res.json(jobs); 
+  } catch(e) { res.status(500).json({error: e.message}) }
 });
 
 app.post('/api/ai/generate', async (req, res) => {
   try {
-    const { prompt, model = 'gemini-2.5-flash', config } = req.body;
-    if (!aiClient) return res.status(503).json({ text: "AI Service Unavailable (Missing Key or Module)" });
+    const { prompt, model = 'gemini-3-flash-preview', config } = req.body;
+    if (!aiClient) return res.status(503).json({ text: "AI Service Unavailable" });
     const response = await aiClient.models.generateContent({ model, contents: prompt, config });
     res.json({ text: response.text });
   } catch (error) {
-    console.error("Gemini Error:", error);
     res.status(500).json({ error: "AI Generation Failed" });
   }
 });
 
-app.post('/api/login', async (req, res) => {
-  const { email, password, role } = req.body;
-  try {
-    // If DB isn't connected, mock login won't work unless we mock it here, 
-    // but the frontend handles fallback if fetch fails.
-    if (mongoose.connection.readyState !== 1) {
-        return res.status(503).json({ message: "Database unavailable." });
-    }
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: "User not found." });
-    if (user.role !== role) return res.status(403).json({ message: `Access denied. This account is for ${user.role}s.` });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (isMatch) {
-      const { password: _, ...userData } = user.toObject();
-      res.json(userData);
-    } else {
-      res.status(401).json({ message: "Invalid password." });
-    }
-  } catch (e) { res.status(500).json({ message: "Login error" }); }
-});
-
-app.post('/api/register', async (req, res) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-        return res.status(503).json({ message: "Database unavailable." });
-    }
-    const { password, email, ...otherData } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Email already exists." });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    const newUser = new User({ ...otherData, email, password: hashedPassword });
-    await newUser.save();
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ message: "Registration failed: " + e.message }); }
-});
-
-app.get('/api/jobs', async (req, res) => {
-  try { 
-      if (mongoose.connection.readyState !== 1) return res.json([]); // Return empty array if DB down
-      const jobs = await Job.find().sort({ postedDate: -1 }); 
-      res.json(jobs); 
-  } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-app.post('/api/jobs', async (req, res) => {
-  try { const newJob = new Job(req.body); await newJob.save(); res.json(newJob); } 
-  catch(e) { res.status(400).json({error: e.message}) }
-});
-app.put('/api/jobs/:id', async (req, res) => {
-  try { await Job.findOneAndUpdate({ id: req.params.id }, req.body); res.json({success:true}); } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-app.delete('/api/jobs/:id', async (req, res) => {
-  try { await Job.deleteOne({ id: req.params.id }); res.json({ success: true }); } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-
-app.get('/api/users', async (req, res) => {
-  try { const users = await User.find().select('-password'); res.json(users); } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-app.put('/api/users/:id', async (req, res) => {
-  try {
-    if (req.body.password) {
-        const salt = await bcrypt.genSalt(10);
-        req.body.password = await bcrypt.hash(req.body.password, salt);
-    }
-    await User.findOneAndUpdate({ id: req.params.id }, req.body);
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({error: e.message}) }
-});
-
-app.get('/api/applications', async (req, res) => {
-  try { const apps = await Application.find(); res.json(apps); } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-app.post('/api/applications', async (req, res) => {
-  try { const newApp = new Application(req.body); await newApp.save(); res.json(newApp); } 
-  catch(e) { res.status(400).json({error: e.message}) }
-});
-app.put('/api/applications/:id', async (req, res) => {
-  try { await Application.findOneAndUpdate({ id: req.params.id }, req.body); res.json({ success: true }); } 
-  catch(e) { res.status(500).json({error: e.message}) }
-});
-
-app.post('/api/upload-verification', async (req, res) => {
-    res.json({success: true}); 
-});
-
-// --- SERVE FRONTEND (STATIC FILES) ---
+// --- SERVE FRONTEND ---
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
-
-// Handle all other routes by returning the React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+    if (req.path.startsWith('/api')) return res.status(404).json({error: 'API Not Found'});
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// HARDCODED PORT 5050 to avoid any environment variable conflicts
-const PORT = 5050; 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Serving static files from: ${distPath}`);
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`CRITICAL: Port ${PORT} is still in use. Please kill the process using 'fuser -k ${PORT}/tcp'`);
-  } else {
-    console.error('Server error:', err);
-  }
+// --- SERVER START ---
+const PORT = process.env.PORT || 5050; 
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT} (PID: ${process.pid})`);
 });
