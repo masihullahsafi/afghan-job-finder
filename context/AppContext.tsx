@@ -107,7 +107,7 @@ const saveToStorage = (key: string, value: any) => {
   }
 };
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5050/api';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
