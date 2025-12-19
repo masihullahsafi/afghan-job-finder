@@ -65,7 +65,7 @@ const UserSchema = new mongoose.Schema({
 
 const ApplicationSchema = new mongoose.Schema({
   id: String, jobId: String, seekerId: String, employerId: String, 
-  resumeUrl: String, status: String, date: String, timeline: Array
+  resumeUrl: String, resumeData: String, status: String, date: String, timeline: Array
 });
 
 const Job = mongoose.model('Job', JobSchema);
@@ -84,10 +84,6 @@ const connectDB = async () => {
     console.log("✅ Connected to MongoDB");
   } catch (err) {
     console.error("❌ MongoDB Error:", err.message);
-    if (err.message.includes('ENOTFOUND') || err.message.includes('SRV')) {
-      console.error("💡 HINT: DNS SRV resolution failed. Your host cannot resolve the MongoDB cluster URL.");
-      console.error("👉 FIX: Try using a standard connection string (mongodb://) instead of (mongodb+srv://).");
-    }
     console.log("⚠️ Continuing in 'in-memory' mode.");
   }
 };
@@ -96,6 +92,7 @@ connectDB();
 // --- API ROUTES ---
 app.get('/api/health', (req, res) => res.send('API Active'));
 
+// GET all jobs
 app.get('/api/jobs', async (req, res) => {
   try { 
       if (mongoose.connection.readyState !== 1) return res.json([]);
@@ -104,6 +101,62 @@ app.get('/api/jobs', async (req, res) => {
   } catch(e) { res.status(500).json({error: e.message}) }
 });
 
+// POST a job
+app.post('/api/jobs', async (req, res) => {
+    try {
+        const job = new Job(req.body);
+        await job.save();
+        res.status(201).json(job);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// GET all users (Admin/Search)
+app.get('/api/users', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) return res.json([]);
+        const users = await User.find().select('-password');
+        res.json(users);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET all applications
+app.get('/api/applications', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) return res.json([]);
+        const apps = await Application.find();
+        res.json(apps);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Auth: Login
+app.post('/api/login', async (req, res) => {
+    const { email, password, role } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user || user.role !== role) return res.status(401).json({ message: "Invalid credentials." });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (isMatch) {
+            const { password: _, ...userData } = user.toObject();
+            res.json(userData);
+        } else {
+            res.status(401).json({ message: "Invalid credentials." });
+        }
+    } catch (e) { res.status(500).json({ message: "Login error" }); }
+});
+
+// Auth: Register
+app.post('/api/register', async (req, res) => {
+    try {
+        const { password, ...rest } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ ...rest, password: hashedPassword });
+        await user.save();
+        const { password: _, ...userData } = user.toObject();
+        res.status(201).json(userData);
+    } catch (e) { res.status(400).json({ message: e.message }); }
+});
+
+// AI Generation
 app.post('/api/ai/generate', async (req, res) => {
   try {
     const { prompt, model = 'gemini-3-flash-preview', config } = req.body;
@@ -118,6 +171,8 @@ app.post('/api/ai/generate', async (req, res) => {
 // --- SERVE FRONTEND ---
 const distPath = path.join(__dirname, '../dist');
 app.use(express.static(distPath));
+
+// Catch-all must be the LAST route
 app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({error: 'API Not Found'});
     res.sendFile(path.join(distPath, 'index.html'));
