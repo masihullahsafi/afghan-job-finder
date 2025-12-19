@@ -13,8 +13,16 @@ module.exports = {
       },
       env_production: {
         NODE_ENV: "production",
-        PORT: 5050
+        PORT: 5050,
+        MONGO_URI: "mongodb+srv://masihshafy_db_user:w0ZRtGgYzyYGnWxl@cluster0.zkamfis.mongodb.net/?appName=Cluster0",
+        EMAIL_HOST: "md-plesk-web6.webhostbox.net",
+        EMAIL_PORT: 465,
+        EMAIL_SECURE: true,
+        EMAIL_USER: "noreply@afghanjobfinder.com",
+        EMAIL_PASS: "OTPsending55@"
       }
+      
     }
   ]
 };
+
