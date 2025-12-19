@@ -252,12 +252,22 @@ const Application = mongoose.model('Application', ApplicationSchema);
 // --- API ROUTES ---
 api.get('/health', (_, res) => res.json({ status: 'API Active' }));
 
-api.get('/jobs', async (req, res) => {
-  console.log('📡 /api/jobs hit'); // ✅ DEBUG LINE
-  if (mongoose.connection.readyState !== 1) return res.json([]);
-  const jobs = await Job.find({ status: 'Active' }).sort({ postedDate: -1 });
-  res.json(jobs);
+// api.get('/jobs', async (req, res) => {
+//   console.log('📡 /api/jobs hit'); // ✅ DEBUG LINE
+//   if (mongoose.connection.readyState !== 1) return res.json([]);
+//   const jobs = await Job.find({ status: 'Active' }).sort({ postedDate: -1 });
+//   res.json(jobs);
+// });
+
+app.get('/api/jobs', async (req, res) => {
+  try {
+    const jobs = await Job.find().sort({ postedDate: -1 });
+    res.json(jobs);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
+
 
 api.post('/jobs', async (req, res) => {
   const job = await new Job(req.body).save();
