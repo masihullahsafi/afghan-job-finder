@@ -70,15 +70,12 @@ export const Auth: React.FC = () => {
             const data = await result.json();
 
             if (result.status === 200) {
-                // Success: Update context and redirect
-                await login(role, email, password); // Sync context
+                await login(role, email, password); 
                 handleAuthSuccess();
             } else if (result.status === 404) {
-                // Not Found: Take to registration
                 setError(data.message);
-                setTimeout(() => { setIsLogin(false); setError(''); }, 2000);
+                setTimeout(() => { setIsLogin(false); setError(''); }, 3000);
             } else if (result.status === 401) {
-                // Wrong Password
                 setError(data.message);
             } else if (result.status === 403 && data.requireVerification) {
                 setIsVerifying(true);
@@ -108,7 +105,10 @@ export const Auth: React.FC = () => {
             }
         } else {
             setError(regRes.message || "");
-            // If already registered, don't switch tab, but show message with forgot pass link
+            // Handle existing user redirect
+            if (regRes.message?.includes("already registered")) {
+                setTimeout(() => { setIsLogin(true); setError(''); }, 4000);
+            }
         }
         setIsLoading(false);
 
@@ -171,9 +171,9 @@ export const Auth: React.FC = () => {
         </div>
 
         {error && (
-            <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-4 animate-in slide-in-from-top-2 duration-300 ${error.includes("already") || error.includes("Redirecting") || error.includes("find") ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-red-50 text-red-600 border border-red-100"}`}>
+            <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-4 animate-in slide-in-from-top-2 duration-300 ${error.includes("already") || error.includes("check your spelling") || error.includes("register") ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-red-50 text-red-600 border border-red-100"}`}>
                 <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
-                <span>{error} {error.includes("account with us") && <button onClick={() => {setIsLogin(true); setIsForgot(true); setError('');}} className="underline font-bold ml-1">Forgot Password?</button>}</span>
+                <span>{error} {error.includes("already registered") && <button onClick={() => {setIsLogin(true); setIsForgot(true); setError('');}} className="underline font-bold ml-1">Forgot Password?</button>}</span>
             </div>
         )}
 

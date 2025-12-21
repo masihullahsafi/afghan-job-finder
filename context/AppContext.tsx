@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Language, UserRole, Job, Application, JobAlert, Notification, ActivityLog, ContactMessage, Report, Review, BlogPost, ChatMessage, CommunityPost, InterviewSession, SystemAnnouncement } from '../types';
 import { TRANSLATIONS, MOCK_JOBS, MOCK_APPLICATIONS, MOCK_USERS, CITIES as INITIAL_CITIES, CATEGORIES as INITIAL_CATEGORIES, MOCK_REPORTS, MOCK_REVIEWS, INITIAL_BLOG_POSTS, MOCK_MESSAGES, MOCK_COMMUNITY_POSTS, MOCK_INTERVIEW_SESSIONS, MOCK_ANNOUNCEMENTS } from '../constants';
 
@@ -10,11 +10,10 @@ interface AppContextType {
   t: (key: string) => string;
   dir: 'ltr' | 'rtl';
   user: User | null;
-  login: (role: UserRole, email?: string, password?: string) => Promise<{ success: boolean; message?: string; redirect?: 'register' | 'forgot' }>;
-  // Fixed: Added requireVerification to the register method's return type to match server capabilities and fix the error in Auth.tsx.
-  register: (user: User) => Promise<{ success: boolean; message?: string; redirect?: 'login'; requireVerification?: boolean }>;
+  login: (role: UserRole, email?: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  register: (user: User) => Promise<{ success: boolean; message?: string; requireVerification?: boolean }>;
   verifyEmail: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
-  uploadVerificationDoc: (userId: string, documentData: string) => Promise<void>;
+  uploadVerificationDoc: (userId: string, documentData: string) => Promise<void>; 
   logout: () => void;
   savedJobIds: string[];
   toggleSaveJob: (jobId: string) => void;
@@ -32,8 +31,8 @@ interface AppContextType {
   deleteJob: (jobId: string) => void;
   submitApplication: (application: Application) => void;
   withdrawApplication: (appId: string) => void;
-  updateApplicationStatus: (appId: string, status: Application['status'], details?: Partial<Application>) => void;
-  updateApplicationMeta: (appId: string, data: any) => void;
+  updateApplicationStatus: (appId: string, status: Application['status'], interviewDetails?: Partial<Application>) => void;
+  updateApplicationMeta: (appId: string, data: { employerNotes?: string; employerRating?: number }) => void;
   upgradeUserPlan: (plan: 'Free' | 'Standard' | 'Premium') => void;
   toggleSaveCandidate: (candidateId: string) => void;
   allUsers: User[];
@@ -65,7 +64,7 @@ interface AppContextType {
   posts: BlogPost[];
   addPost: (post: BlogPost) => void;
   updatePost: (post: BlogPost) => void;
-  deletePost: (postId: string) => void;
+  deletePost: (postId: number) => void;
   chatMessages: ChatMessage[];
   sendChatMessage: (receiverId: string, content: string, relatedJobId?: string) => void;
   markChatAsRead: (senderId: string) => void;
@@ -83,8 +82,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const API_URL = '/api';
-
 const loadFromStorage = <T,>(key: string, fallback: T): T => {
   const saved = localStorage.getItem(key);
   if (saved) {
@@ -97,39 +94,52 @@ const saveToStorage = (key: string, value: any) => {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
 };
 
+const API_URL = '/api';
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const [language, setLanguage] = useState<Language>('en');
+  const [isOffline, setIsOffline] = useState(false);
   const [user, setUser] = useState<User | null>(() => loadFromStorage('ajf_user', null));
+  const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]); 
   const [applications, setApplications] = useState<Application[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => loadFromStorage('ajf_saved', []));
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobsRes, appsRes, usersRes] = await Promise.all([
-          fetch(`${API_URL}/jobs`),
-          fetch(`${API_URL}/applications`),
-          fetch(`${API_URL}/users`)
-        ]);
-        if (jobsRes.ok) setJobs(await jobsRes.json());
-        if (appsRes.ok) setApplications(await appsRes.json());
-        if (usersRes.ok) setAllUsers(await usersRes.json());
-      } catch (e) {
-        setJobs(MOCK_JOBS);
-        setApplications(MOCK_APPLICATIONS);
-        setAllUsers(MOCK_USERS);
+        const jobsRes = await fetch(`${API_URL}/jobs`);
+        if (!jobsRes.ok) throw new Error("API Offline");
+        const jobsData = await jobsRes.json();
+        const appsRes = await fetch(`${API_URL}/applications`);
+        const appsData = await appsRes.json();
+        let usersData = [];
+        try {
+            const usersRes = await fetch(`${API_URL}/users`);
+            if (usersRes.ok) usersData = await usersRes.json();
+        } catch (e) {}
+
+        if (Array.isArray(jobsData) && jobsData.length > 0) { setJobs(jobsData); setIsOffline(false); } 
+        else { setJobs(MOCK_JOBS); }
+        if (Array.isArray(appsData)) setApplications(appsData);
+        if (Array.isArray(usersData) && usersData.length > 0) setAllUsers(usersData);
+        else setAllUsers(MOCK_USERS);
+      } catch (error) {
+        setIsOffline(true); 
+        setJobs(loadFromStorage('ajf_jobs', MOCK_JOBS));
+        setApplications(loadFromStorage('ajf_applications', MOCK_APPLICATIONS));
+        setAllUsers(loadFromStorage('ajf_users', MOCK_USERS));
       }
     };
     fetchData();
-  }, []);
+  }, []); 
 
   const [cities, setCities] = useState<string[]>(() => loadFromStorage('ajf_cities', INITIAL_CITIES));
   const [categories, setCategories] = useState<string[]>(() => loadFromStorage('ajf_categories', INITIAL_CATEGORIES));
   const [jobAlerts, setJobAlerts] = useState<JobAlert[]>(() => loadFromStorage('ajf_alerts', []));
   const [notifications, setNotifications] = useState<Notification[]>(() => loadFromStorage('ajf_notifications', []));
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadFromStorage('ajf_logs', []));
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => loadFromStorage('ajf_messages', []));
   const [reports, setReports] = useState<Report[]>(() => loadFromStorage('ajf_reports', MOCK_REPORTS));
   const [reviews, setReviews] = useState<Review[]>(() => loadFromStorage('ajf_reviews', MOCK_REVIEWS));
@@ -140,152 +150,155 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(() => loadFromStorage('ajf_announcements', MOCK_ANNOUNCEMENTS));
   const [comparisonJobs, setComparisonJobs] = useState<Job[]>([]);
 
+  useEffect(() => saveToStorage('ajf_user', user), [user]);
+  useEffect(() => saveToStorage('ajf_jobs', jobs), [jobs]); 
+  useEffect(() => saveToStorage('ajf_users', allUsers), [allUsers]);
+
+  const dir = language === 'en' ? 'ltr' : 'rtl';
   useEffect(() => {
-    saveToStorage('ajf_user', user);
-    saveToStorage('ajf_saved', savedJobIds);
-    saveToStorage('ajf_posts', posts);
-  }, [user, savedJobIds, posts]);
+    document.documentElement.dir = dir;
+    document.documentElement.lang = language;
+    document.body.style.fontFamily = language === 'en' ? "'Inter', sans-serif" : "'Noto Naskh Arabic', serif";
+  }, [language, dir]);
 
-  const dir: 'ltr' | 'rtl' = language === 'en' ? 'ltr' : 'rtl';
-  const t = (key: string) => TRANSLATIONS[key]?.[language] || key;
+  const t = (key: string) => { if (!TRANSLATIONS[key]) return key; return TRANSLATIONS[key][language] || key; };
 
-  const login = async (role: UserRole, email?: string, password?: string) => {
-    try {
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role })
-      });
-      const data = await res.json();
-      if (res.status === 200) {
-        setUser(data);
-        return { success: true };
-      }
-      if (res.status === 404) {
-        return { success: false, message: data.message, redirect: 'register' as const };
-      }
-      if (res.status === 401) {
-        return { success: false, message: data.message, redirect: 'forgot' as const };
-      }
-      return { success: false, message: data.message || "Invalid credentials" };
-    } catch (e) {
-      const mock = MOCK_USERS.find(u => u.email === email && u.role === role);
-      if (mock) { setUser(mock); return { success: true }; }
-      return { success: false, message: "Connection Error" };
-    }
-  };
-
-  // Fixed: Implementation of register function now handles and returns requireVerification from the server response.
-  const register = async (newUser: User) => {
-    try {
-      const res = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
-      });
-      const data = await res.json();
-      if (res.status === 201) {
-        // Handle cases where email verification (OTP) is required by the server.
-        if (data.requireVerification) {
-          return { success: true, requireVerification: true };
+  const login = async (role: UserRole, email?: string, password?: string): Promise<{ success: boolean; message?: string }> => {
+    if (!isOffline && email && password) {
+        try {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, role })
+            });
+            if (res.ok) {
+                const dbUser = await res.json();
+                setUser(dbUser);
+                return { success: true };
+            } else {
+                const errorData = await res.json();
+                return { success: false, message: errorData.message || "Invalid credentials." };
+            }
+        } catch (e) {
+            return { success: false, message: "Connection failed. Please try again." };
         }
-        setUser(data);
-        setAllUsers(prev => [...prev, data]);
-        return { success: true };
-      }
-      if (res.status === 409) {
-        return { success: false, message: data.message, redirect: 'login' as const };
-      }
-      return { success: false, message: data.message || "Registration failed" };
-    } catch (e) {
-      // Fallback for offline/development demo purposes.
-      setUser(newUser);
-      setAllUsers(p => [...p, newUser]);
-      return { success: true };
     }
+    const mockUser = MOCK_USERS.find(u => u.email === email && u.role === role);
+    if (mockUser) { setUser(mockUser); return { success: true }; }
+    return { success: false, message: "Invalid credentials (Demo mode)." };
   };
 
-  const verifyEmail = async (email: string, otp: string) => {
-    return { success: true };
+  const register = async (newUser: User): Promise<{ success: boolean; message?: string; requireVerification?: boolean }> => {
+      if (!isOffline) {
+          try {
+              const res = await fetch(`${API_URL}/register`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(newUser)
+              });
+              const data = await res.json();
+              if (!res.ok) return { success: false, message: data.message || "Registration failed." };
+              if (data.requireVerification) return { success: true, requireVerification: true };
+              return { success: true };
+          } catch(e) { return { success: false, message: "Server error." }; }
+      }
+      setAllUsers(prev => [...prev, newUser]);
+      setUser(newUser);
+      return { success: true };
+  };
+
+  const verifyEmail = async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => {
+      try {
+          const res = await fetch(`${API_URL}/verify-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, otp })
+          });
+          if(res.ok) {
+              const data = await res.json();
+              setUser(data.user);
+              return { success: true };
+          } else {
+              const err = await res.json();
+              return { success: false, message: err.message };
+          }
+      } catch(e) { return { success: false, message: "Connection error" }; }
   };
 
   const uploadVerificationDoc = async (userId: string, documentData: string) => {
-    if (user && user._id === userId) {
-      setUser({ ...user, verificationStatus: 'Pending', verificationDocument: documentData });
-    }
+      if (!isOffline) {
+          try {
+              await fetch(`${API_URL}/upload-verification`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, documentData })
+              });
+          } catch (e) {}
+      }
+      if (user && user._id === userId) setUser({ ...user, verificationStatus: 'Pending', verificationDocument: documentData });
   };
 
-  const logout = () => { setUser(null); localStorage.removeItem('ajf_user'); navigate('/'); };
+  const logout = () => { setUser(null); setSavedJobIds([]); localStorage.removeItem('ajf_user'); };
+  const toggleSaveJob = (jobId: string) => { if (!user) { navigate('/auth'); return; } setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]); };
+  const addJob = async (job: Job) => { setJobs(prev => [job, ...prev]); if (!isOffline) { try { await fetch(`${API_URL}/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) }); } catch (error) {} } };
+  const updateJob = async (updatedJob: Job) => setJobs(prev => prev.map(j => j._id === updatedJob._id ? updatedJob : j));
+  const deleteJob = async (jobId: string) => setJobs(prev => prev.filter(j => j._id !== jobId));
+  const submitApplication = async (application: Application) => setApplications(prev => [...prev, application]);
+  const withdrawApplication = (appId: string) => setApplications(prev => prev.filter(a => a._id !== appId));
+  const updateApplicationStatus = async (appId: string, status: Application['status'], details?: any) => { setApplications(prev => prev.map(app => app._id === appId ? { ...app, status, ...details } : app)); };
+  const updateApplicationMeta = (appId: string, data: any) => setApplications(prev => prev.map(app => app._id === appId ? { ...app, ...data } : app));
+  const updateUserProfile = async (data: Partial<User>) => { if (user) { const updatedUser = { ...user, ...data }; setUser(updatedUser); setAllUsers(prev => prev.map(u => u._id === user._id ? updatedUser : u)); } };
+  const updateUserResume = (filename: string) => { if (user) updateUserProfile({ resume: filename }); };
+  const upgradeUserPlan = (plan: any) => { if (user) updateUserProfile({ plan }); };
+  const toggleFollowCompany = (companyId: string) => { if (!user) return; const current = user.following || []; const updated = current.includes(companyId) ? current.filter(id => id !== companyId) : [...current, companyId]; updateUserProfile({ following: updated }); };
+  const toggleSaveCandidate = (candidateId: string) => { if (!user) return; const current = user.savedCandidates || []; const updated = current.includes(candidateId) ? current.filter(id => id !== candidateId) : [...current, candidateId]; updateUserProfile({ savedCandidates: updated }); };
+  const addToComparison = (job: Job) => { if (comparisonJobs.length < 3 && !comparisonJobs.some(j => j._id === job._id)) setComparisonJobs(prev => [...prev, job]); };
+  const removeFromComparison = (jobId: string) => setComparisonJobs(prev => prev.filter(j => j._id !== jobId));
+  const clearComparison = () => setComparisonJobs([]);
+  const deleteUser = (userId: string) => setAllUsers(prev => prev.filter(u => u._id !== userId));
+  const approveUser = (userId: string) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, status: 'Active', verificationStatus: 'Verified' } : u));
+  const changeUserRole = (userId: string, role: any) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, role } : u));
+  const adminUpdateUserPlan = (userId: string, plan: any) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, plan } : u));
+  const sendContactMessage = (msg: ContactMessage) => setContactMessages(prev => [msg, ...prev]);
+  const submitReport = (report: Report) => setReports(prev => [report, ...prev]);
+  const resolveReport = (id: string) => setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Resolved' } : r));
+  const addCity = (city: string) => setCities(prev => [...prev, city]);
+  const removeCity = (city: string) => setCities(prev => prev.filter(c => c !== city));
+  const addCategory = (cat: string) => setCategories(prev => [...prev, cat]);
+  const removeCategory = (cat: string) => setCategories(prev => prev.filter(c => c !== cat));
+  const addJobAlert = (alert: JobAlert) => setJobAlerts(prev => [...prev, alert]);
+  const deleteJobAlert = (id: string) => setJobAlerts(prev => prev.filter(a => a._id !== id));
+  const markNotificationAsRead = (id: string) => setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+  const markAllNotificationsAsRead = () => { if (user) setNotifications(prev => prev.map(n => n.userId === user._id ? { ...n, isRead: true } : n)); };
+  const addReview = (review: Review) => setReviews(prev => [review, ...prev]);
+  const deleteReview = (id: string) => setReviews(prev => prev.filter(r => r._id !== id));
+  const addPost = (post: BlogPost) => setPosts(prev => [post, ...prev]);
+  const updatePost = (post: BlogPost) => setPosts(prev => prev.map(p => p._id === post._id ? post : p));
+  const deletePost = (id: number) => setPosts(prev => prev.filter(p => p._id !== id.toString()));
+  const sendChatMessage = (receiverId: string, content: string, relatedJobId?: string) => { if (!user) return; setChatMessages(prev => [...prev, {_id: Date.now().toString(), senderId: user._id, receiverId, content, timestamp: new Date().toISOString(), isRead: false, relatedJobId}]); };
+  const markChatAsRead = (senderId: string) => { if (!user) return; setChatMessages(prev => prev.map(msg => (msg.receiverId === user._id && msg.senderId === senderId) ? { ...msg, isRead: true } : msg)); };
+  const addCommunityPost = (post: CommunityPost) => setCommunityPosts(prev => [post, ...prev]);
+  const toggleLikePost = (id: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p._id === id ? { ...p, likes: p.likes.includes(user._id) ? p.likes.filter(uid => uid !== user._id) : [...p.likes, user._id] } : p)); };
+  const addComment = (pid: string, content: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p._id === pid ? { ...p, comments: [...p.comments, {_id: Date.now().toString(), authorId: user._id, authorName: user.name, content, timestamp: new Date().toISOString()}] } : p)); };
+  const addInterviewSession = (s: InterviewSession) => setInterviewSessions(prev => [s, ...prev]);
+  const addAnnouncement = (a: SystemAnnouncement) => setAnnouncements(prev => [a, ...prev]);
+  const deleteAnnouncement = (id: string) => setAnnouncements(prev => prev.filter(a => a._id !== id));
+  const toggleAnnouncementStatus = (id: string) => setAnnouncements(prev => prev.map(a => a._id === id ? { ...a, isActive: !a.isActive } : a));
 
-  const toggleSaveJob = (jobId: string) => {
-    if (!user) { navigate('/auth'); return; }
-    setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
-  };
-
-  const addJob = async (job: Job) => {
-    setJobs(p => [job, ...p]);
-    try { await fetch(`${API_URL}/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) }); } catch(e){}
-  };
-
-  const updateJob = (job: Job) => setJobs(p => p.map(j => j._id === job._id ? job : j));
-  
-  const deleteJob = async (id: string) => {
-      setJobs(p => p.filter(j => j._id !== id));
-      try { await fetch(`${API_URL}/jobs/${id}`, { method: 'DELETE' }); } catch(e){}
-  };
-  
-  const submitApplication = (app: Application) => setApplications(p => [app, ...p]);
-  const withdrawApplication = (id: string) => setApplications(p => p.filter(a => a._id !== id));
-  const updateApplicationStatus = (id: string, status: any, details?: any) => setApplications(p => p.map(a => a._id === id ? { ...a, status, ...details } : a));
-  const updateApplicationMeta = (id: string, data: any) => setApplications(p => p.map(a => a._id === id ? { ...a, ...data } : a));
-
-  const updateUserProfile = async (data: Partial<User>) => {
-    if (user) {
-      const updated = { ...user, ...data };
-      setUser(updated);
-      setAllUsers(p => p.map(u => u._id === user._id ? updated : u));
-    }
-  };
-
-  const deleteUser = async (id: string) => {
-      setAllUsers(p => p.filter(u => u._id !== id));
-      try { await fetch(`${API_URL}/users/${id}`, { method: 'DELETE' }); } catch(e){}
-  };
-
-  const approveUser = (id: string) => setAllUsers(p => p.map(u => u._id === id ? { ...u, verificationStatus: 'Verified' } : u));
-  const changeUserRole = (id: string, role: any) => setAllUsers(p => p.map(u => u._id === id ? { ...u, role } : u));
-  const adminUpdateUserPlan = (id: string, plan: any) => setAllUsers(p => p.map(u => u._id === id ? { ...u, plan } : u));
-
-  const value: AppContextType = {
-    language, setLanguage, user, login, register, verifyEmail, uploadVerificationDoc, logout, t, dir,
-    savedJobIds, toggleSaveJob, comparisonJobs, addToComparison: (j: Job) => setComparisonJobs(p => [...p, j]),
-    removeFromComparison: (id: string) => setComparisonJobs(p => p.filter(j => j._id !== id)),
-    clearComparison: () => setComparisonJobs([]),
+  const value = {
+    language, setLanguage, user, login, register, verifyEmail, uploadVerificationDoc, logout, t, dir: dir as 'ltr' | 'rtl',
+    savedJobIds, toggleSaveJob, comparisonJobs, addToComparison, removeFromComparison, clearComparison,
     jobs, applications, addJob, updateJob, deleteJob, submitApplication, withdrawApplication,
-    updateApplicationStatus, updateApplicationMeta, updateUserResume: (f: string) => updateUserProfile({ resume: f }),
-    updateUserProfile, upgradeUserPlan: (p: any) => updateUserProfile({ plan: p }),
-    toggleFollowCompany: (id: string) => updateUserProfile({ following: (user?.following || []).includes(id) ? user?.following?.filter(i => i !== id) : [...(user?.following || []), id] }),
-    toggleSaveCandidate: (id: string) => updateUserProfile({ savedCandidates: (user?.savedCandidates || []).includes(id) ? user?.savedCandidates?.filter(i => i !== id) : [...(user?.savedCandidates || []), id] }),
-    allUsers, deleteUser,
-    approveUser, changeUserRole, adminUpdateUserPlan,
-    activityLogs: [], contactMessages: [], sendContactMessage: () => {},
-    reports: [], resolveReport: () => {}, submitReport: () => {},
-    cities, addCity: (c: string) => setCities(p => [...p, c]), removeCity: (c: string) => setCities(p => p.filter(i => i !== c)),
-    categories, addCategory: (c: string) => setCategories(p => [...p, c]), removeCategory: (c: string) => setCategories(p => p.filter(i => i !== c)),
-    jobAlerts, addJobAlert: (a: any) => {}, deleteJobAlert: (id: string) => {},
-    notifications, markNotificationAsRead: (id: string) => setNotifications(p => p.map(n => n._id === id ? { ...n, isRead: true } : n)),
-    markAllNotificationsAsRead: () => setNotifications(p => p.map(n => ({ ...n, isRead: true }))),
-    reviews, addReview: (r: any) => setReviews(p => [r, ...p]), deleteReview: (id: string) => setReviews(p => p.filter(r => r._id !== id)),
-    posts, addPost: (p: any) => setPosts(prev => [p, ...prev]), updatePost: (p: any) => setPosts(prev => prev.map(i => i._id === p._id ? p : i)),
-    deletePost: (id: string) => setPosts(p => p.filter(i => i._id !== id)),
-    chatMessages, sendChatMessage: (rid: string, c: string) => setChatMessages(p => [...p, { _id: Date.now().toString(), senderId: user?._id || '', receiverId: rid, content: c, timestamp: new Date().toISOString(), isRead: false }]),
-    markChatAsRead: (sid: string) => setChatMessages(p => p.map(m => m.senderId === sid ? { ...m, isRead: true } : m)),
-    communityPosts, addCommunityPost: (p: any) => setCommunityPosts(prev => [p, ...prev]),
-    toggleLikePost: (id: string) => setCommunityPosts(p => p.map(i => i._id === id ? { ...i, likes: i.likes.includes(user?._id || '') ? i.likes.filter(l => l !== user?._id) : [...i.likes, user?._id || ''] } : i)),
-    addComment: (id: string, c: string) => setCommunityPosts(p => p.map(i => i._id === id ? { ...i, comments: [...i.comments, { _id: Date.now().toString(), authorName: user?.name || '', content: c }] } : i)),
-    interviewSessions, addInterviewSession: (s: any) => setInterviewSessions(p => [s, ...p]),
-    announcements, addAnnouncement: (a: any) => setAnnouncements(p => [a, ...p]), deleteAnnouncement: (id: string) => setAnnouncements(p => p.filter(a => a._id !== id)),
-    toggleAnnouncementStatus: (id: string) => setAnnouncements(p => p.map(a => a._id === id ? { ...a, isActive: !a.isActive } : a))
+    updateApplicationStatus, updateApplicationMeta, updateUserResume, updateUserProfile,
+    upgradeUserPlan, toggleFollowCompany, toggleSaveCandidate, allUsers, deleteUser,
+    approveUser, changeUserRole, adminUpdateUserPlan, activityLogs, contactMessages,
+    sendContactMessage, reports, resolveReport, submitReport, cities, addCity, removeCity,
+    categories, addCategory, removeCategory, jobAlerts, addJobAlert, deleteJobAlert,
+    notifications, markNotificationAsRead, markAllNotificationsAsRead, reviews, addReview,
+    deleteReview, posts, addPost, updatePost, deletePost, chatMessages, sendChatMessage,
+    markChatAsRead, communityPosts, addCommunityPost, toggleLikePost, addComment,
+    interviewSessions, addInterviewSession, announcements, addAnnouncement, deleteAnnouncement,
+    toggleAnnouncementStatus
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -293,6 +306,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 export const useAppContext = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error('useAppContext must be used within AppProvider');
+  if (context === undefined) throw new Error('useAppContext must be used within AppProvider');
   return context;
 };

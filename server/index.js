@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 let GoogleGenAI;
 try {
@@ -29,6 +30,14 @@ if (isCloudinaryConfigured) {
         api_secret: process.env.CLOUDINARY_API_SECRET
     });
 }
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // or your SMTP provider
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -98,7 +107,7 @@ const UserSchema = new mongoose.Schema({
   address: String,
   password: { type: String, required: true },
   plan: { type: String, default: 'Free' },
-  status: { type: String, default: 'Pending' }, // Defaults to Pending for OTP
+  status: { type: String, default: 'Pending' }, 
   verificationStatus: { type: String, default: 'Unverified' },
   verificationDocument: String,
   verifiedSkills: [String],
@@ -155,11 +164,17 @@ connectDB();
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password, ...rest } = req.body;
-        if (!isDbConnected) return res.status(201).json({ ...rest, email, _id: Date.now().toString(), status: 'Active' });
+        
+        if (!isDbConnected) {
+             return res.status(201).json({ ...rest, email, _id: Date.now().toString(), status: 'Active' });
+        }
 
+        // STRICTOR CHECK FOR EXISTING USER
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(409).json({ message: "You already have an account with us. Please log in or reset your password if you forgot it." });
+            return res.status(409).json({ 
+                message: "This email is already registered. Please log in or use 'Forgot Password'." 
+            });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -169,13 +184,31 @@ app.post('/api/register', async (req, res) => {
 
         // Generate OTP
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        await OTP.create({ email, code });
+        await OTP.findOneAndUpdate({ email }, { code }, { upsert: true });
         
-        console.log(`[MOCK EMAIL] To: ${email}, OTP: ${code}`); // Mocking email send
+        // REAL EMAIL SENDING
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await transporter.sendMail({
+                from: `"Afghan Job Finder" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: "Your Verification Code",
+                text: `Your verification code is: ${code}. It expires in 10 minutes.`,
+                html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <h2 style="color: #0284c7;">Welcome to Afghan Job Finder</h2>
+                        <p>Please use the following code to verify your account:</p>
+                        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #0c4a6e; margin: 20px 0;">${code}</div>
+                        <p style="font-size: 12px; color: #666;">This code will expire in 10 minutes.</p>
+                       </div>`
+            });
+            console.log(`✅ Email sent to ${email}`);
+        } else {
+            console.warn(`⚠️ EMAIL_USER/PASS missing. OTP for ${email}: ${code}`);
+        }
 
         res.status(201).json({ message: "OTP sent", requireVerification: true, email });
     } catch (e) {
-        res.status(500).json({ message: "Registration failed" });
+        console.error("Registration error:", e);
+        res.status(500).json({ message: "Registration failed. Please try again later." });
     }
 });
 
@@ -183,12 +216,11 @@ app.post('/api/verify-email', async (req, res) => {
     const { email, otp } = req.body;
     try {
         const record = await OTP.findOne({ email, code: otp });
-        if (!record) return res.status(400).json({ message: "Invalid or expired OTP." });
+        if (!record) return res.status(400).json({ message: "Invalid or expired verification code." });
 
-        await User.findOneAndUpdate({ email }, { status: 'Active' });
+        const user = await User.findOneAndUpdate({ email }, { status: 'Active' }, { new: true }).select('-password');
         await OTP.deleteOne({ _id: record._id });
 
-        const user = await User.findOne({ email }).select('-password');
         res.json({ user, success: true });
     } catch (e) {
         res.status(500).json({ message: "Verification failed." });
@@ -203,20 +235,20 @@ app.post('/api/login', async (req, res) => {
         const user = await User.findOne({ email });
         
         if (!user) {
-            return res.status(404).json({ message: "We couldn't find an account with that email. Let's get you registered!" });
+            return res.status(404).json({ message: "We couldn't find an account with that email. Please check your spelling or register." });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid password. Please check your credentials and try again." });
+            return res.status(401).json({ message: "Invalid password. Try again or reset it." });
         }
 
         if (user.status === 'Pending') {
-            return res.status(403).json({ message: "Please verify your email before logging in.", requireVerification: true });
+            return res.status(403).json({ message: "Account not verified.", requireVerification: true, email: user.email });
         }
 
         if (user.role !== role) {
-            return res.status(403).json({ message: `This account is registered as an ${user.role}.` });
+            return res.status(403).json({ message: `This account is registered as a ${user.role}.` });
         }
         
         const { password: _, ...userData } = user.toObject();
