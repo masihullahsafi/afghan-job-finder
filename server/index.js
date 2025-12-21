@@ -142,15 +142,21 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', db: isDbConnected 
 
 app.post('/api/register', async (req, res) => {
     try {
-        const { _id, password, ...rest } = req.body;
+        const { email, _id, password, ...rest } = req.body;
         const userId = _id || Date.now().toString();
         
         if (!isDbConnected) {
-            return res.status(201).json({ ...rest, _id: userId, status: 'Active' });
+            return res.status(201).json({ ...rest, email, _id: userId, status: 'Active' });
         }
         
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ message: "You already have an account with us. Please log in or reset your password if you forgot it." });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ _id: userId, ...rest, password: hashedPassword });
+        const user = new User({ _id: userId, email, ...rest, password: hashedPassword });
         await user.save();
         
         const { password: _, ...userData } = user.toObject();
@@ -167,10 +173,23 @@ app.post('/api/login', async (req, res) => {
         if (!isDbConnected) {
             return res.status(200).json({ email, role, name: 'Demo User', _id: 'demo-user', plan: 'Premium', status: 'Active' });
         }
+
         const user = await User.findOne({ email });
-        if (!user || user.role !== role) return res.status(401).json({ message: "Invalid credentials." });
+        
+        // Mode: Intelligent checks
+        if (!user) {
+            // Both email and password "wrong" effectively since user doesn't exist
+            return res.status(404).json({ message: "No account found with this email. Redirecting you to register..." });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: "Invalid credentials." });
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid password. Please try again or reset your password." });
+        }
+
+        if (user.role !== role) {
+            return res.status(403).json({ message: `This account is registered as a ${user.role}. Please select the correct role.` });
+        }
         
         const { password: _, ...userData } = user.toObject();
         res.json(userData);
@@ -199,6 +218,14 @@ app.post('/api/jobs', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.delete('/api/jobs/:id', async (req, res) => {
+    try {
+        if (!isDbConnected) return res.status(200).json({ success: true });
+        await Job.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/applications', async (req, res) => {
     try {
         const apps = isDbConnected ? await Application.find() : [];
@@ -210,6 +237,14 @@ app.get('/api/users', async (req, res) => {
     try {
         const users = isDbConnected ? await User.find().select('-password') : [];
         res.json(users);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        if (!isDbConnected) return res.status(200).json({ success: true });
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
