@@ -9,7 +9,7 @@ export enum UserRole {
 }
 
 export interface Experience {
-  id: string;
+  _id: string;
   title: string;
   company: string;
   startDate: string;
@@ -18,7 +18,7 @@ export interface Experience {
 }
 
 export interface Education {
-  id: string;
+  _id: string;
   degree: string;
   school: string;
   startDate: string;
@@ -26,7 +26,7 @@ export interface Education {
 }
 
 export interface UserDocument {
-  id: string;
+  _id: string;
   name: string;
   type: 'Resume' | 'Certificate' | 'Cover Letter' | 'Other';
   data: string; // URL or Base64
@@ -42,6 +42,7 @@ export interface UserSettings {
 }
 
 export interface User {
+  _id: string;
   firstName?: string; 
   lastName?: string;  
   name: string;
@@ -87,7 +88,7 @@ export interface User {
 }
 
 export interface Job {
-  id: string;
+  _id: string;
   employerId?: string;
   title: string;
   company: string;
@@ -129,7 +130,7 @@ export interface ApplicationTimeline {
 }
 
 export interface Application {
-  id: string;
+  _id: string;
   jobId: string;
   seekerId: string;
   resumeUrl: string;
@@ -147,7 +148,7 @@ export interface Application {
 }
 
 export interface BlogPost {
-  id: number;
+  _id: number;
   title: string;
   excerpt: string;
   content: string;
@@ -165,7 +166,7 @@ export interface BlogPost {
 }
 
 export interface CommunityPost {
-  id: string;
+  _id: string;
   authorId: string;
   authorName: string;
   authorAvatar?: string;
@@ -178,7 +179,7 @@ export interface CommunityPost {
 }
 
 export interface SystemAnnouncement {
-  id: string;
+  _id: string;
   title: string;
   message: string;
   type: 'Info' | 'Warning' | 'Success' | 'Urgent';
@@ -188,7 +189,7 @@ export interface SystemAnnouncement {
 }
 
 export interface Event {
-  id: string;
+  _id: string;
   title: string;
   organizer: string;
   date: string;
@@ -210,7 +211,7 @@ export interface TranslationDictionary {
 }
 
 export interface Report {
-  id: string;
+  _id: string;
   jobId: string;
   reason: string;
   details: string;
@@ -219,7 +220,7 @@ export interface Report {
 }
 
 export interface Review {
-  id: string;
+  _id: string;
   companyId: string;
   userId: string;
   userName: string;
@@ -229,7 +230,7 @@ export interface Review {
 }
 
 export interface ChatMessage {
-  id: string;
+  _id: string;
   senderId: string;
   receiverId: string;
   content: string;
@@ -239,7 +240,7 @@ export interface ChatMessage {
 }
 
 export interface InterviewSession {
-  id: string;
+  _id: string;
   userId: string;
   jobTitle: string;
   companyName: string;
@@ -260,7 +261,7 @@ export interface QuizQuestion {
 
 // Added JobAlert interface to resolve import errors in AppContext
 export interface JobAlert {
-  id: string;
+  _id: string;
   userId: string;
   keyword?: string;
   location?: string;
@@ -272,7 +273,7 @@ export interface JobAlert {
 
 // Added Notification interface for system notifications
 export interface Notification {
-  id: string;
+  _id: string;
   userId: string;
   title: string;
   message: string;
@@ -283,7 +284,7 @@ export interface Notification {
 
 // Added ActivityLog interface for auditing user actions
 export interface ActivityLog {
-  id: string;
+  _id: string;
   userId: string;
   action: string;
   details: string;
@@ -292,7 +293,7 @@ export interface ActivityLog {
 
 // Added ContactMessage interface for form submissions in Contact.tsx
 export interface ContactMessage {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   subject: string;

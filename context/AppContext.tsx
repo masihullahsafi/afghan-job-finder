@@ -57,7 +57,7 @@ interface AppContextType {
   addJobAlert: (alert: JobAlert) => void;
   deleteJobAlert: (alertId: string) => void;
   notifications: Notification[];
-  markNotificationAsRead: (id: string) => void;
+  markNotificationAsRead: (_id: string) => void;
   markAllNotificationsAsRead: () => void;
   reviews: Review[];
   addReview: (review: Review) => void;
@@ -77,8 +77,8 @@ interface AppContextType {
   addInterviewSession: (session: InterviewSession) => void;
   announcements: SystemAnnouncement[];
   addAnnouncement: (ann: SystemAnnouncement) => void;
-  deleteAnnouncement: (id: string) => void;
-  toggleAnnouncementStatus: (id: string) => void;
+  deleteAnnouncement: (_id: string) => void;
+  toggleAnnouncementStatus: (_id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -220,55 +220,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               body: JSON.stringify({ userId, documentData })
           });
       } catch (e) {}
-      if (user && user.id === userId) setUser({ ...user, verificationStatus: 'Pending', verificationDocument: documentData });
+      if (user && user._id === userId) setUser({ ...user, verificationStatus: 'Pending', verificationDocument: documentData });
   };
 
   const logout = () => { setUser(null); setSavedJobIds([]); localStorage.removeItem('ajf_user'); };
-  const toggleSaveJob = (jobId: string) => { if (!user) { navigate('/auth'); return; } setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]); };
+  const toggleSaveJob = (jobId: string) => { if (!user) { navigate('/auth'); return; } setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(_id => _id !== jobId) : [...prev, jobId]); };
   const addJob = async (job: Job) => { setJobs(prev => [job, ...prev]); try { await fetch(`${API_URL}/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) }); } catch (error) {} };
-  const updateJob = async (updatedJob: Job) => setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
-  const deleteJob = async (jobId: string) => setJobs(prev => prev.filter(j => j.id !== jobId));
+  const updateJob = async (updatedJob: Job) => setJobs(prev => prev.map(j => j._id === updatedJob._id ? updatedJob : j));
+  const deleteJob = async (jobId: string) => setJobs(prev => prev.filter(j => j._id !== jobId));
   const submitApplication = async (application: Application) => setApplications(prev => [...prev, application]);
-  const withdrawApplication = (appId: string) => setApplications(prev => prev.filter(a => a.id !== appId));
-  const updateApplicationStatus = async (appId: string, status: Application['status'], details?: any) => setApplications(prev => prev.map(app => app.id === appId ? { ...app, status, ...details } : app));
-  const updateApplicationMeta = (appId: string, data: any) => setApplications(prev => prev.map(app => app.id === appId ? { ...app, ...data } : app));
-  const updateUserProfile = async (data: Partial<User>) => { if (user) { const updatedUser = { ...user, ...data }; setUser(updatedUser); setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u)); } };
+  const withdrawApplication = (appId: string) => setApplications(prev => prev.filter(a => a._id !== appId));
+  const updateApplicationStatus = async (appId: string, status: Application['status'], details?: any) => setApplications(prev => prev.map(app => app._id === appId ? { ...app, status, ...details } : app));
+  const updateApplicationMeta = (appId: string, data: any) => setApplications(prev => prev.map(app => app._id === appId ? { ...app, ...data } : app));
+  const updateUserProfile = async (data: Partial<User>) => { if (user) { const updatedUser = { ...user, ...data }; setUser(updatedUser); setAllUsers(prev => prev.map(u => u._id === user._id ? updatedUser : u)); } };
   const updateUserResume = (filename: string) => { if (user) updateUserProfile({ resume: filename }); };
   const upgradeUserPlan = (plan: any) => { if (user) updateUserProfile({ plan }); };
   const toggleFollowCompany = (companyId: string) => { if (!user) return; const current = user.following || []; const updated = current.includes(companyId) ? current.filter(id => id !== companyId) : [...current, companyId]; updateUserProfile({ following: updated }); };
   const toggleSaveCandidate = (candidateId: string) => { if (!user) return; const current = user.savedCandidates || []; const updated = current.includes(candidateId) ? current.filter(id => id !== candidateId) : [...current, candidateId]; updateUserProfile({ savedCandidates: updated }); };
-  const addToComparison = (job: Job) => { if (comparisonJobs.length < 3 && !comparisonJobs.some(j => j.id === job.id)) setComparisonJobs(prev => [...prev, job]); };
-  const removeFromComparison = (jobId: string) => setComparisonJobs(prev => prev.filter(j => j.id !== jobId));
+  const addToComparison = (job: Job) => { if (comparisonJobs.length < 3 && !comparisonJobs.some(j => j._id === job._id)) setComparisonJobs(prev => [...prev, job]); };
+  const removeFromComparison = (jobId: string) => setComparisonJobs(prev => prev.filter(j => j._id !== jobId));
   const clearComparison = () => setComparisonJobs([]);
-  const deleteUser = (userId: string) => setAllUsers(prev => prev.filter(u => u.id !== userId));
-  const approveUser = (userId: string) => setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'Active', verificationStatus: 'Verified' } : u));
-  const changeUserRole = (userId: string, role: any) => setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-  const adminUpdateUserPlan = (userId: string, plan: any) => setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, plan } : u));
+  const deleteUser = (userId: string) => setAllUsers(prev => prev.filter(u => u._id !== userId));
+  const approveUser = (userId: string) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, status: 'Active', verificationStatus: 'Verified' } : u));
+  const changeUserRole = (userId: string, role: any) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, role } : u));
+  const adminUpdateUserPlan = (userId: string, plan: any) => setAllUsers(prev => prev.map(u => u._id === userId ? { ...u, plan } : u));
   const sendContactMessage = (msg: ContactMessage) => setContactMessages(prev => [msg, ...prev]);
   const submitReport = (report: Report) => setReports(prev => [report, ...prev]);
-  const resolveReport = (id: string) => setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'Resolved' } : r));
+  const resolveReport = (_id: string) => setReports(prev => prev.map(r => r._id === _id ? { ...r, status: 'Resolved' } : r));
   const addCity = (city: string) => setCities(prev => [...prev, city]);
   const removeCity = (city: string) => setCities(prev => prev.filter(c => c !== city));
   const addCategory = (cat: string) => setCategories(prev => [...prev, cat]);
   const removeCategory = (cat: string) => setCategories(prev => prev.filter(c => c !== cat));
   const addJobAlert = (alert: JobAlert) => setJobAlerts(prev => [...prev, alert]);
-  const deleteJobAlert = (id: string) => setJobAlerts(prev => prev.filter(a => a.id !== id));
-  const markNotificationAsRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-  const markAllNotificationsAsRead = () => { if (user) setNotifications(prev => prev.map(n => n.userId === user.id ? { ...n, isRead: true } : n)); };
+  const deleteJobAlert = (id: string) => setJobAlerts(prev => prev.filter(a => a._id !== id));
+  const markNotificationAsRead = (id: string) => setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+  const markAllNotificationsAsRead = () => { if (user) setNotifications(prev => prev.map(n => n.userId === user._id ? { ...n, isRead: true } : n)); };
   const addReview = (review: Review) => setReviews(prev => [review, ...prev]);
-  const deleteReview = (id: string) => setReviews(prev => prev.filter(r => r.id !== id));
+  const deleteReview = (id: string) => setReviews(prev => prev.filter(r => r._id !== id));
   const addPost = (post: BlogPost) => setPosts(prev => [post, ...prev]);
-  const updatePost = (post: BlogPost) => setPosts(prev => prev.map(p => p.id === post.id ? post : p));
-  const deletePost = (id: number) => setPosts(prev => prev.filter(p => p.id !== id));
-  const sendChatMessage = (receiverId: string, content: string, relatedJobId?: string) => { if (!user) return; setChatMessages(prev => [...prev, {id: Date.now().toString(), senderId: user.id, receiverId, content, timestamp: new Date().toISOString(), isRead: false, relatedJobId}]); };
-  const markChatAsRead = (senderId: string) => { if (!user) return; setChatMessages(prev => prev.map(msg => (msg.receiverId === user.id && msg.senderId === senderId) ? { ...msg, isRead: true } : msg)); };
+  const updatePost = (post: BlogPost) => setPosts(prev => prev.map(p => p._id === post._id ? post : p));
+  const deletePost = (id: number) => setPosts(prev => prev.filter(p => p._id !== id));
+  const sendChatMessage = (receiverId: string, content: string, relatedJobId?: string) => { if (!user) return; setChatMessages(prev => [...prev, {_id: Date.now().toString(), senderId: user._id, receiverId, content, timestamp: new Date().toISOString(), isRead: false, relatedJobId}]); };
+  const markChatAsRead = (senderId: string) => { if (!user) return; setChatMessages(prev => prev.map(msg => (msg.receiverId === user._id && msg.senderId === senderId) ? { ...msg, isRead: true } : msg)); };
   const addCommunityPost = (post: CommunityPost) => setCommunityPosts(prev => [post, ...prev]);
-  const toggleLikePost = (id: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p.id === id ? { ...p, likes: p.likes.includes(user.id) ? p.likes.filter(uid => uid !== user.id) : [...p.likes, user.id] } : p)); };
-  const addComment = (pid: string, content: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p.id === pid ? { ...p, comments: [...p.comments, {id: Date.now().toString(), authorId: user.id, authorName: user.name, content, timestamp: new Date().toISOString()}] } : p)); };
+  const toggleLikePost = (id: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p._id === id ? { ...p, likes: p.likes.includes(user._id) ? p.likes.filter(uid => uid !== user._id) : [...p.likes, user._id] } : p)); };
+  const addComment = (pid: string, content: string) => { if (!user) return; setCommunityPosts(prev => prev.map(p => p._id === pid ? { ...p, comments: [...p.comments, {id: Date.now().toString(), authorId: user._id, authorName: user.name, content, timestamp: new Date().toISOString()}] } : p)); };
   const addInterviewSession = (s: InterviewSession) => setInterviewSessions(prev => [s, ...prev]);
   const addAnnouncement = (a: SystemAnnouncement) => setAnnouncements(prev => [a, ...prev]);
-  const deleteAnnouncement = (id: string) => setAnnouncements(prev => prev.filter(a => a.id !== id));
-  const toggleAnnouncementStatus = (id: string) => setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, isActive: !a.isActive } : a));
+  const deleteAnnouncement = (id: string) => setAnnouncements(prev => prev.filter(a => a._id !== id));
+  const toggleAnnouncementStatus = (id: string) => setAnnouncements(prev => prev.map(a => a._id === id ? { ...a, isActive: !a.isActive } : a));
 
   const value = {
     language, setLanguage, user, login, register, verifyEmail, uploadVerificationDoc, logout, t, dir: dir as 'ltr' | 'rtl',

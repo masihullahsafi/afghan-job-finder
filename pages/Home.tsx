@@ -72,7 +72,7 @@ export const Home: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {urgentJobs.map(job => (
-                  <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-4 cursor-pointer border border-red-100 hover:border-red-300 relative group animate-pulse-red">
+                  <div key={job._id} onClick={() => navigate(`/jobs/${job._id}`)} className="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-4 cursor-pointer border border-red-100 hover:border-red-300 relative group animate-pulse-red">
                     <div className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-xl">URGENT</div>
                     <img src={job.companyLogo} className="w-12 h-12 rounded-lg object-cover mb-4 bg-gray-50 border border-gray-100" />
                     <h3 className="font-bold text-sm md:text-base text-gray-900 mb-1 line-clamp-1 group-hover:text-red-600 transition">{job.title}</h3>
@@ -96,7 +96,7 @@ export const Home: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {featuredJobs.map(job => (
-              <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition cursor-pointer">
+              <div key={job._id} onClick={() => navigate(`/jobs/${job._id}`)} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition cursor-pointer">
                 <div className="flex justify-between items-start mb-4">
                   <img src={job.companyLogo} className="w-12 h-12 rounded-lg object-cover" />
                   <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded">Featured</span>

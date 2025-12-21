@@ -19,7 +19,7 @@ export const INDUSTRIES = [
 
 export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
   {
-    id: 'post1',
+    _id: 'post1',
     authorId: 'emp1',
     authorName: 'Tech Solutions Afghan',
     authorAvatar: 'https://ui-avatars.com/api/?name=Tech+Solutions&background=0D8ABC&color=fff',
@@ -27,12 +27,12 @@ export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     content: "We are excited to announce our new partnership with Microsoft! This will open up 50+ new jobs in Kabul for Cloud Engineers. Stay tuned!",
     likes: ['seeker1', 'user2'],
     comments: [
-        { id: 'c1', authorId: 'seeker1', authorName: 'Ahmad Wali', content: 'This is amazing news! Congratulations.', timestamp: '2023-11-15T10:30:00Z' }
+        { _id: 'c1', authorId: 'seeker1', authorName: 'Ahmad Wali', content: 'This is amazing news! Congratulations.', timestamp: '2023-11-15T10:30:00Z' }
     ],
     timestamp: '2023-11-15T09:00:00Z'
   },
   {
-    id: 'post2',
+    _id: 'post2',
     authorId: 'seeker1',
     authorName: 'Ahmad Wali',
     authorAvatar: 'https://ui-avatars.com/api/?name=Ahmad+Wali&background=random',
@@ -46,7 +46,7 @@ export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
 
 export const MOCK_ANNOUNCEMENTS: SystemAnnouncement[] = [
   {
-    id: 'ann1',
+    _id: 'ann1',
     title: 'Platform Maintenance',
     message: 'We will be undergoing scheduled maintenance on Friday at 2:00 AM. The site will be unavailable for approximately 1 hour.',
     type: 'Warning',
@@ -55,7 +55,7 @@ export const MOCK_ANNOUNCEMENTS: SystemAnnouncement[] = [
     isActive: true
   },
   {
-    id: 'ann2',
+    _id: 'ann2',
     title: 'New AI Features',
     message: 'Employers can now use AI to generate interview questions! Check it out in your dashboard.',
     type: 'Info',
@@ -67,7 +67,7 @@ export const MOCK_ANNOUNCEMENTS: SystemAnnouncement[] = [
 
 export const MOCK_EVENTS: Event[] = [
   {
-    id: 'evt1',
+    _id: 'evt1',
     title: 'Kabul Tech Job Fair 2024',
     organizer: 'Afghan Job Finder',
     date: '2024-02-15',
@@ -80,7 +80,7 @@ export const MOCK_EVENTS: Event[] = [
     category: 'Job Fair'
   },
   {
-    id: 'evt2',
+    _id: 'evt2',
     title: 'Mastering Remote Work',
     organizer: 'Tech Solutions Afghan',
     date: '2024-01-20',
@@ -93,7 +93,7 @@ export const MOCK_EVENTS: Event[] = [
     category: 'Webinar'
   },
   {
-    id: 'evt3',
+    _id: 'evt3',
     title: 'Women in Business Summit',
     organizer: 'Women Chamber of Commerce',
     date: '2024-03-08',
@@ -109,7 +109,7 @@ export const MOCK_EVENTS: Event[] = [
 
 export const INITIAL_BLOG_POSTS: BlogPost[] = [
   {
-    id: 1,
+    _id: 1,
     title: "Top 10 In-Demand Skills in Afghanistan for 2024",
     excerpt: "Discover the skills that employers in Kabul and beyond are desperately looking for this year. From IT to Project Management, here is what you need to know.",
     content: `
@@ -136,7 +136,7 @@ export const INITIAL_BLOG_POSTS: BlogPost[] = [
     status: 'Published'
   },
   {
-    id: 2,
+    _id: 2,
     title: "How to Write a CV That Gets You Hired",
     excerpt: "Expert tips on crafting a resume that stands out to Afghan NGOs and private companies. Avoid common mistakes and highlight your true potential.",
     content: `
@@ -160,7 +160,7 @@ export const INITIAL_BLOG_POSTS: BlogPost[] = [
     status: 'Published'
   },
   {
-    id: 3,
+    _id: 3,
     title: "Remote Work Opportunities: A Growing Trend",
     excerpt: "Explore how Afghan professionals are finding success working for international clients from home. Learn about platforms and payment methods.",
     content: `
@@ -182,7 +182,7 @@ export const INITIAL_BLOG_POSTS: BlogPost[] = [
     status: 'Published'
   },
   {
-    id: 4,
+    _id: 4,
     title: "Acing the Interview: Behavioral Questions",
     excerpt: "Behavioral questions are tough. Learn the STAR method to answer questions like 'Tell me about a time you failed' with confidence.",
     content: `
@@ -265,7 +265,7 @@ const generateEmployers = () => {
   ];
 
   return companies.map((c, i) => ({
-    id: `emp_gen_${i}`,
+    _id: `emp_gen_${i}`,
     name: c.name,
     email: `contact@${c.name.toLowerCase().replace(/\s/g, '')}.af`,
     role: UserRole.EMPLOYER,
@@ -292,7 +292,7 @@ const generatedEmployers = generateEmployers();
 
 export const MOCK_USERS: User[] = [
   {
-    id: 'admin1',
+    _id: 'admin1',
     name: 'Super Admin',
     email: 'admin@afghanjobfinder.com',
     role: UserRole.ADMIN,
@@ -301,7 +301,7 @@ export const MOCK_USERS: User[] = [
     plan: 'Premium'
   },
   {
-    id: 'emp1',
+    _id: 'emp1',
     name: 'Tech Solutions Afghan',
     email: 'hr@techsolutions.af',
     role: UserRole.EMPLOYER,
@@ -323,7 +323,7 @@ export const MOCK_USERS: User[] = [
     ]
   },
   {
-    id: 'emp2',
+    _id: 'emp2',
     name: 'Roshan Telecom',
     email: 'hr@roshan.af',
     role: UserRole.EMPLOYER,
@@ -344,7 +344,7 @@ export const MOCK_USERS: User[] = [
     ]
   },
   {
-    id: 'emp3',
+    _id: 'emp3',
     name: 'Kam Air',
     email: 'jobs@kamair.com',
     role: UserRole.EMPLOYER,
@@ -357,7 +357,7 @@ export const MOCK_USERS: User[] = [
     address: 'Kabul Intl Airport'
   },
   {
-    id: 'emp4',
+    _id: 'emp4',
     name: 'Azizi Bank',
     email: 'hr@azizibank.af',
     role: UserRole.EMPLOYER,
@@ -370,7 +370,7 @@ export const MOCK_USERS: User[] = [
     address: 'Zanbaq Square, Kabul'
   },
   {
-    id: 'seeker1',
+    _id: 'seeker1',
     name: 'Ahmad Wali',
     email: 'ahmad@example.com',
     role: UserRole.SEEKER,
@@ -386,7 +386,7 @@ export const MOCK_USERS: User[] = [
     following: ['emp1', 'emp2'],
     documents: [
         {
-            id: 'doc1',
+            _id: 'doc1',
             name: 'ahmad_resume_tech.pdf',
             type: 'Resume',
             data: MOCK_PDF_BASE64,
@@ -394,7 +394,7 @@ export const MOCK_USERS: User[] = [
             size: '240 KB'
         },
         {
-            id: 'doc2',
+            _id: 'doc2',
             name: 'react_certificate.pdf',
             type: 'Certificate',
             data: MOCK_PDF_BASE64,
@@ -404,7 +404,7 @@ export const MOCK_USERS: User[] = [
     ],
     experience: [
       {
-        id: 'exp1',
+        _id: 'exp1',
         title: 'Frontend Developer',
         company: 'Tech Solutions Afghan',
         startDate: 'Jan 2021',
@@ -412,7 +412,7 @@ export const MOCK_USERS: User[] = [
         description: 'Developing responsive web applications using React and Tailwind CSS. Improving site performance by 30%.'
       },
       {
-        id: 'exp2',
+        _id: 'exp2',
         title: 'Junior Web Developer',
         company: 'Afghan IT',
         startDate: 'Jun 2019',
@@ -422,7 +422,7 @@ export const MOCK_USERS: User[] = [
     ],
     education: [
       {
-        id: 'edu1',
+        _id: 'edu1',
         degree: 'Bachelor of Computer Science',
         school: 'Kabul University',
         startDate: '2015',
@@ -462,8 +462,8 @@ const generateJobs = () => {
     for (let j = 0; j < numJobs; j++) {
       const role = roles[Math.floor(Math.random() * roles.length)];
       jobs.push({
-        id: `job_gen_${i}_${j}`,
-        employerId: emp.id, // Linked to generated employer
+        _id: `job_gen_${i}_${j}`,
+        employerId: emp._id, // Linked to generated employer
         title: role.title,
         company: emp.name,
         companyLogo: emp.avatar,
@@ -491,7 +491,7 @@ const generatedJobs = generateJobs();
 
 export const MOCK_JOBS: Job[] = [
   {
-    id: 'job1',
+    _id: 'job1',
     employerId: 'emp1',
     title: 'Senior React Developer',
     company: 'Tech Solutions Afghan',
@@ -512,7 +512,7 @@ export const MOCK_JOBS: Job[] = [
     status: 'Active'
   },
   {
-    id: 'job2',
+    _id: 'job2',
     employerId: 'emp1',
     title: 'Project Manager',
     company: 'Tech Solutions Afghan',
@@ -533,7 +533,7 @@ export const MOCK_JOBS: Job[] = [
     status: 'Active'
   },
   {
-    id: 'job3',
+    _id: 'job3',
     employerId: 'emp2',
     title: 'Network Engineer',
     company: 'Roshan Telecom',
@@ -558,7 +558,7 @@ export const MOCK_JOBS: Job[] = [
 
 export const MOCK_APPLICATIONS: Application[] = [
   {
-    id: 'app1',
+    _id: 'app1',
     jobId: 'job1',
     seekerId: 'seeker1',
     resumeUrl: 'ahmad_resume.pdf',
@@ -571,7 +571,7 @@ export const MOCK_APPLICATIONS: Application[] = [
     ]
   },
   {
-    id: 'app2',
+    _id: 'app2',
     jobId: 'job3',
     seekerId: 'seeker1',
     resumeUrl: 'ahmad_resume.pdf',
@@ -593,7 +593,7 @@ export const MOCK_REPORTS: Report[] = [];
 
 export const MOCK_REVIEWS: Review[] = [
   {
-    id: 'rev1',
+    _id: 'rev1',
     companyId: 'emp1',
     userId: 'seeker1',
     userName: 'Ahmad Wali',
@@ -602,7 +602,7 @@ export const MOCK_REVIEWS: Review[] = [
     date: '2023-11-10'
   },
   {
-    id: 'rev2',
+    _id: 'rev2',
     companyId: 'emp1',
     userId: 'user2',
     userName: 'Sarah Khan',
@@ -614,7 +614,7 @@ export const MOCK_REVIEWS: Review[] = [
 
 export const MOCK_INTERVIEW_SESSIONS: InterviewSession[] = [
   {
-    id: 'sess1',
+    _id: 'sess1',
     userId: 'seeker1',
     jobTitle: 'Frontend Developer',
     companyName: 'Tech Solutions Afghan',
@@ -637,7 +637,7 @@ export const MOCK_INTERVIEW_SESSIONS: InterviewSession[] = [
 
 export const MOCK_MESSAGES: ChatMessage[] = [
   {
-    id: 'msg1',
+    _id: 'msg1',
     senderId: 'emp1',
     receiverId: 'seeker1',
     content: 'Hello Ahmad, thanks for applying. Are you available for a quick call tomorrow?',
@@ -645,7 +645,7 @@ export const MOCK_MESSAGES: ChatMessage[] = [
     isRead: false
   },
   {
-    id: 'msg2',
+    _id: 'msg2',
     senderId: 'seeker1',
     receiverId: 'emp1',
     content: 'Hi, yes I am available after 2 PM.',

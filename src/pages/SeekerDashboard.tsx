@@ -46,7 +46,7 @@ export const SeekerDashboard: React.FC = () => {
 
   if (!user || user.role !== 'SEEKER') return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-red-600 font-bold mb-4">{t('accessDenied')}</p><button onClick={() => navigate('/auth')} className="text-primary-600 hover:underline">Go to Login</button></div>;
 
-  const myApps = applications.filter(app => app.seekerId === user.id).map(app => ({ ...app, job: jobs.find(j => j.id === app.jobId) }));
+  const myApps = applications.filter(app => app.seekerId === user._id).map(app => ({ ...app, job: jobs.find(j => j._id === app.jobId) }));
   const upcomingInterviews = myApps.filter(a => a.status === 'Interview' && a.interviewDate);
   const handleLogout = () => { logout(); navigate('/'); };
   const handleDownloadPDF = () => { const element = document.getElementById('cv-preview-content'); if (element) { html2pdf().set({ margin: 0, filename: `${user.name}_CV.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save(); } };
@@ -79,7 +79,7 @@ export const SeekerDashboard: React.FC = () => {
           const fileUrl = await uploadFile(file);
 
           const newDoc: UserDocument = {
-              id: Date.now().toString(),
+              _id: Date.now().toString(),
               name: file.name,
               type: 'Resume',
               data: fileUrl, // Save URL instead of Base64
@@ -112,7 +112,7 @@ export const SeekerDashboard: React.FC = () => {
 
   const handleDeleteDocument = (docId: string) => {
       if (confirm("Delete this document?")) {
-          const newDocs = user.documents?.filter(d => d.id !== docId) || [];
+          const newDocs = user.documents?.filter(d => d._id !== docId) || [];
           updateUserProfile({ documents: newDocs });
       }
   };
@@ -154,13 +154,13 @@ export const SeekerDashboard: React.FC = () => {
 
           <div className="lg:col-span-3">
               {activeTab === 'applications' && (
-                  <div className="space-y-6"><h2 className="text-xl font-bold text-gray-900">{t('myApplications')}</h2>{myApps.length > 0 ? myApps.map(app => <div key={app.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"><h3 className="font-bold">{app.job?.title}</h3><p className="text-sm text-gray-500">{app.job?.company}</p><span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded mt-2 inline-block">{app.status}</span></div>) : <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-200 text-gray-500">No applications yet.</div>}</div>
+                  <div className="space-y-6"><h2 className="text-xl font-bold text-gray-900">{t('myApplications')}</h2>{myApps.length > 0 ? myApps.map(app => <div key={app._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200"><h3 className="font-bold">{app.job?.title}</h3><p className="text-sm text-gray-500">{app.job?.company}</p><span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded mt-2 inline-block">{app.status}</span></div>) : <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-200 text-gray-500">No applications yet.</div>}</div>
               )}
 
               {activeTab === 'documents' && (
                   <div className="space-y-6">
                       <div className="flex justify-between items-center"><h2 className="text-xl font-bold text-gray-900">My Documents</h2><label className="bg-primary-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary-700 cursor-pointer flex items-center gap-2">{isUploading ? <Loader2 size={16} className="animate-spin"/> : <Upload size={16}/>} Upload Document<input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading}/></label></div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{user.documents && user.documents.length > 0 ? user.documents.map(doc => <div key={doc.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between"><div className="flex items-center gap-3 overflow-hidden"><div className="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center flex-shrink-0"><FileText size={20}/></div><div className="min-w-0"><p className="font-bold text-gray-900 truncate text-sm">{doc.name}</p><p className="text-xs text-gray-500">{doc.date}</p></div></div><div className="flex gap-2"><button onClick={() => window.open(doc.data, '_blank')} className="p-2 text-gray-400 hover:text-blue-600"><Eye size={16}/></button><button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={16}/></button></div></div>) : <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-gray-200"><FolderOpen size={48} className="mx-auto text-gray-300 mb-4"/><p className="text-gray-500">No documents uploaded.</p></div>}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{user.documents && user.documents.length > 0 ? user.documents.map(doc => <div key={doc._id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between"><div className="flex items-center gap-3 overflow-hidden"><div className="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center flex-shrink-0"><FileText size={20}/></div><div className="min-w-0"><p className="font-bold text-gray-900 truncate text-sm">{doc.name}</p><p className="text-xs text-gray-500">{doc.date}</p></div></div><div className="flex gap-2"><button onClick={() => window.open(doc.data, '_blank')} className="p-2 text-gray-400 hover:text-blue-600"><Eye size={16}/></button><button onClick={() => handleDeleteDocument(doc._id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={16}/></button></div></div>) : <div className="col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-gray-200"><FolderOpen size={48} className="mx-auto text-gray-300 mb-4"/><p className="text-gray-500">No documents uploaded.</p></div>}</div>
                   </div>
               )}
               {/* Other tabs omitted for brevity, logic remains */}

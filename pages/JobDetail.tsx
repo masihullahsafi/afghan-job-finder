@@ -48,9 +48,9 @@ export const JobDetail: React.FC = () => {
   const [isAnalyzingMatch, setIsAnalyzingMatch] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const job = jobs.find(j => j.id === id);
+  const job = jobs.find(j => j._id === id);
   const company = allUsers.find(u => u.name === job?.company && u.role === UserRole.EMPLOYER);
-  const similarJobs = jobs.filter(j => j.category === job?.category && j.id !== job?.id).slice(0, 3);
+  const similarJobs = jobs.filter(j => j.category === job?.category && j._id !== job?._id).slice(0, 3);
   
   const marketAverageSalary = job ? job.salaryMin * 0.9 : 0; 
   const applicantCount = applications.filter(a => a.jobId === id).length;
@@ -66,8 +66,8 @@ export const JobDetail: React.FC = () => {
     return <div className="p-10 text-center text-gray-500">Job not found.</div>;
   }
 
-  const isSaved = savedJobIds.includes(job.id);
-  const hasApplied = applications.some(app => app.jobId === job.id && app.seekerId === user?.id);
+  const isSaved = savedJobIds.includes(job._id);
+  const hasApplied = applications.some(app => app.jobId === job._id && app.seekerId === user?._id);
 
   const handleApplyClick = () => {
     if (!user) {
@@ -169,9 +169,9 @@ export const JobDetail: React.FC = () => {
     }
 
     const newApplication: Application = {
-      id: Date.now().toString(),
-      jobId: job.id,
-      seekerId: user.id,
+      _id: Date.now().toString(),
+      jobId: job._id,
+      seekerId: user._id,
       resumeUrl: finalResumeUrl || (resumeFile ? resumeFile.name : 'resume.pdf'),
       resumeData: finalResumeData,
       coverLetter,
@@ -184,15 +184,15 @@ export const JobDetail: React.FC = () => {
       submitApplication(newApplication);
       setIsSubmitting(false);
       setShowApplyModal(false);
-      navigate('/seeker', { state: { highlightJobId: job.id } });
+      navigate('/seeker', { state: { highlightJobId: job._id } });
     }, 1500);
   };
 
   const handleReportSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       const report: Report = {
-          id: Date.now().toString(),
-          jobId: job.id,
+          _id: Date.now().toString(),
+          jobId: job._id,
           reason: reportReason,
           details: reportDetails,
           status: 'Pending',
@@ -250,7 +250,7 @@ export const JobDetail: React.FC = () => {
                         src={job.companyLogo} 
                         alt={job.company} 
                         className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover border border-gray-200 bg-white shadow-sm cursor-pointer hover:opacity-90 transition"
-                        onClick={() => company && navigate(`/companies/${company.id}`)}
+                        onClick={() => company && navigate(`/companies/${company._id}`)}
                         onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${job.company}&background=random` }}
                       />
                       <div>
@@ -263,7 +263,7 @@ export const JobDetail: React.FC = () => {
                               )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
-                              <span onClick={() => company && navigate(`/companies/${company.id}`)} className={`font-medium ${company ? 'text-primary-600 hover:underline cursor-pointer' : 'text-gray-700'}`}>{job.company}</span>
+                              <span onClick={() => company && navigate(`/companies/${company._id}`)} className={`font-medium ${company ? 'text-primary-600 hover:underline cursor-pointer' : 'text-gray-700'}`}>{job.company}</span>
                               {company?.verificationStatus === 'Verified' && <ShieldCheck size={14} className="text-blue-500"/>}
                               <span className="text-gray-300">•</span>
                               <span className="text-gray-500 flex items-center gap-1"><MapPin size={12}/> {job.location}</span>
@@ -274,7 +274,7 @@ export const JobDetail: React.FC = () => {
                   </div>
 
                   <div className="flex gap-2 w-full md:w-auto hidden md:flex">
-                      <button onClick={() => toggleSaveJob(job.id)} className={`p-3 rounded-xl border transition ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                      <button onClick={() => toggleSaveJob(job._id)} className={`p-3 rounded-xl border transition ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
                           {isSaved ? <Bookmark size={20} className="fill-current"/> : <Bookmark size={20}/>}
                       </button>
                       <button onClick={handleShare} className="p-3 rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition" title="Share">

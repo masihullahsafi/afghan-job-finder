@@ -105,10 +105,10 @@ export const EmployerDashboard: React.FC = () => {
 
   if (!user || user.role !== 'EMPLOYER') return <div className="p-10 text-center">Redirecting...</div>;
 
-  const myJobs = jobs.filter(job => job.employerId === user.id || job.company === user.name);
+  const myJobs = jobs.filter(job => job.employerId === user._id || job.company === user.name);
   const selectedJobApps = selectedJobIdForApps 
     ? applications.filter(app => app.jobId === selectedJobIdForApps) 
-    : applications.filter(app => myJobs.some(j => j.id === app.jobId));
+    : applications.filter(app => myJobs.some(j => j._id === app.jobId));
 
   const filteredCandidates = allUsers.filter(u => { 
       if (u.role !== 'SEEKER') return false; 
@@ -131,7 +131,7 @@ export const EmployerDashboard: React.FC = () => {
   };
 
   const handleEditJob = (job: Job) => { 
-      setEditingJobId(job.id); setTitle(job.title); setCategory(job.category); setJobType(job.type); 
+      setEditingJobId(job._id); setTitle(job.title); setCategory(job.category); setJobType(job.type); 
       setExperience(job.experienceLevel); setSalaryMin(job.salaryMin.toString()); setSalaryMax(job.salaryMax.toString()); 
       setDeadline(job.deadline); setLocation(job.location); setSkills(job.requirements.join(', ')); 
       setDescription(job.description); setResponsibilities(job.responsibilities ? job.responsibilities.join('\n') : ''); 
@@ -147,7 +147,7 @@ export const EmployerDashboard: React.FC = () => {
   const handleSubmitJob = (e: React.FormEvent) => { 
       e.preventDefault(); 
       const newJob: Job = { 
-          id: editingJobId || Date.now().toString(), employerId: user.id, title, company: user.name, 
+          _id: editingJobId || Date.now().toString(), employerId: user._id, title, company: user.name, 
           companyLogo: user.avatar || 'https://via.placeholder.com/150', location, salaryMin: parseInt(salaryMin), 
           salaryMax: parseInt(salaryMax), currency: 'AFN', type: jobType as any, experienceLevel: experience as any, 
           category, postedDate: new Date().toISOString().split('T')[0], deadline, description, 
@@ -205,7 +205,7 @@ export const EmployerDashboard: React.FC = () => {
 
   const handleVerificationUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      try { const url = await uploadFile(e.target.files[0]); await uploadVerificationDoc(user.id, url); showAlert("Submitted", "License uploaded.", 'success'); } 
+      try { const url = await uploadFile(e.target.files[0]); await uploadVerificationDoc(user._id, url); showAlert("Submitted", "License uploaded.", 'success'); } 
       catch(err) { showAlert("Error", "Upload failed.", 'error'); }
     }
   };
@@ -244,7 +244,7 @@ export const EmployerDashboard: React.FC = () => {
     e.preventDefault(); if (!editorRef.current) return; const content = editorRef.current.innerHTML; 
     if(!content.trim() || !articleTitle) return; setIsSubmittingArticle(true); 
     const seo = await analyzeArticleSEO(content, articleTitle); 
-    const newPost: BlogPost = { id: Date.now(), title: articleTitle, content, excerpt: content.replace(/<[^>]+>/g, '').substring(0, 150) + "...", date: new Date().toLocaleDateString(), author: user.name, authorId: user.id, role: "Employer", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", category: articleCategory || "General", readTime: "5 min", status: 'Pending', ...seo }; 
+    const newPost: BlogPost = { _id: Date.now(), title: articleTitle, content, excerpt: content.replace(/<[^>]+>/g, '').substring(0, 150) + "...", date: new Date().toLocaleDateString(), author: user.name, authorId: user._id, role: "Employer", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", category: articleCategory || "General", readTime: "5 min", status: 'Pending', ...seo }; 
     addPost(newPost); setIsSubmittingArticle(false); setArticleTitle(''); if(editorRef.current) editorRef.current.innerHTML = ''; 
     showAlert("Success", "Article sent for review.", 'success'); setActiveTab('jobs'); 
   };
@@ -312,11 +312,11 @@ export const EmployerDashboard: React.FC = () => {
                           <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500 border-b"><tr><th className="px-6 py-4">Title</th><th className="px-6 py-4">Status</th><th className="px-6 py-4">Applicants</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
                           <tbody className="divide-y divide-gray-100">
                               {myJobs.map(job => (
-                                  <tr key={job.id} className="hover:bg-gray-50 transition">
+                                  <tr key={job._id} className="hover:bg-gray-50 transition">
                                       <td className="px-6 py-4 font-bold text-gray-900">{job.title}</td>
                                       <td className="px-6 py-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">{job.status}</span></td>
-                                      <td className="px-6 py-4"><button onClick={() => { setSelectedJobIdForApps(job.id); setActiveTab('ats'); }} className="bg-gray-100 px-2 py-1 rounded font-bold text-xs flex items-center gap-1"><Users size={12}/> {applications.filter(a => a.jobId === job.id).length}</button></td>
-                                      <td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={() => handleEditJob(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button><button onClick={() => showConfirm("Delete?", "Confirm deletion", () => deleteJob(job.id))} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></td>
+                                      <td className="px-6 py-4"><button onClick={() => { setSelectedJobIdForApps(job._id); setActiveTab('ats'); }} className="bg-gray-100 px-2 py-1 rounded font-bold text-xs flex items-center gap-1"><Users size={12}/> {applications.filter(a => a.jobId === job._id).length}</button></td>
+                                      <td className="px-6 py-4 text-right flex justify-end gap-2"><button onClick={() => handleEditJob(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button><button onClick={() => showConfirm("Delete?", "Confirm deletion", () => deleteJob(job._id))} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></td>
                                   </tr>
                               ))}
                           </tbody>
@@ -327,17 +327,17 @@ export const EmployerDashboard: React.FC = () => {
 
           {activeTab === 'ats' && (
               <div className="h-full flex flex-col space-y-6 animate-in fade-in duration-300">
-                  <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-gray-900">ATS Board</h2><select className="bg-white border rounded-lg px-4 py-2 text-sm" value={selectedJobIdForApps || ''} onChange={(e) => setSelectedJobIdForApps(e.target.value)}><option value="">All Vacancies</option>{myJobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}</select></div>
+                  <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-gray-900">ATS Board</h2><select className="bg-white border rounded-lg px-4 py-2 text-sm" value={selectedJobIdForApps || ''} onChange={(e) => setSelectedJobIdForApps(e.target.value)}><option value="">All Vacancies</option>{myJobs.map(j => <option key={j._id} value={j._id}>{j.title}</option>)}</select></div>
                   <div className="flex-1 overflow-x-auto pb-4"><div className="flex gap-6 min-w-max h-full">{['Applied', 'Screening', 'Interview', 'Offer', 'Rejected'].map(status => (
                     <div key={status} className="w-72 bg-gray-100 rounded-2xl flex flex-col border border-gray-200"><div className="p-4 border-b font-bold text-xs text-gray-500 uppercase tracking-widest">{status}</div><div className="p-3 space-y-3 overflow-y-auto flex-1 h-[70vh]">{selectedJobApps.filter(a => a.status === status).map(app => (
-                      <div key={app.id} onClick={() => handleViewCandidate(allUsers.find(u => u.id === app.seekerId)!)} className="bg-white p-4 rounded-xl shadow-sm border border-transparent hover:border-primary-400 transition cursor-pointer">
+                      <div key={app._id} onClick={() => handleViewCandidate(allUsers.find(u => u._id === app.seekerId)!)} className="bg-white p-4 rounded-xl shadow-sm border border-transparent hover:border-primary-400 transition cursor-pointer">
                         <div className="flex justify-between items-center mb-2">
-                            <div className="font-bold text-sm text-gray-900">{allUsers.find(u => u.id === app.seekerId)?.name}</div>
+                            <div className="font-bold text-sm text-gray-900">{allUsers.find(u => u._id === app.seekerId)?.name}</div>
                             <button onClick={(e) => handleDownloadResume(e, app.resumeUrl, app.resumeData)} className="p-1 text-gray-400 hover:text-primary-600"><Download size={14}/></button>
                         </div>
                         <div className="flex gap-1">
-                          {status !== 'Rejected' && status !== 'Offer' && <button onClick={(e) => { e.stopPropagation(); handleAppStatusChange(app.id, status === 'Applied' ? 'Screening' : status === 'Screening' ? 'Interview' : 'Offer'); }} className="flex-1 bg-primary-50 text-primary-700 py-1.5 rounded-lg text-[10px] font-bold">Advance</button>}
-                          <button onClick={(e) => { e.stopPropagation(); handleAppStatusChange(app.id, 'Rejected'); }} className="px-2.5 py-1.5 border rounded-lg text-gray-400 hover:text-red-600"><XCircle size={14}/></button>
+                          {status !== 'Rejected' && status !== 'Offer' && <button onClick={(e) => { e.stopPropagation(); handleAppStatusChange(app._id, status === 'Applied' ? 'Screening' : status === 'Screening' ? 'Interview' : 'Offer'); }} className="flex-1 bg-primary-50 text-primary-700 py-1.5 rounded-lg text-[10px] font-bold">Advance</button>}
+                          <button onClick={(e) => { e.stopPropagation(); handleAppStatusChange(app._id, 'Rejected'); }} className="px-2.5 py-1.5 border rounded-lg text-gray-400 hover:text-red-600"><XCircle size={14}/></button>
                         </div>
                       </div>
                     ))}</div></div>
@@ -348,7 +348,7 @@ export const EmployerDashboard: React.FC = () => {
           {activeTab === 'calendar' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-gray-900">Interview Calendar</h2><div className="flex items-center gap-3 bg-white p-2 rounded-xl border"><button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={20}/></button><span className="font-bold text-sm min-w-[120px] text-center uppercase tracking-wide">{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span><button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight size={20}/></button></div></div>
-              <div className="bg-white rounded-2xl shadow-sm border p-6"><div className="grid grid-cols-7 gap-px bg-gray-200 border rounded-xl overflow-hidden shadow-inner">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="bg-gray-50 py-3 text-center text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{d}</div>)}{(() => { const days = []; const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay(); const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate(); for(let i=0; i<firstDay; i++) days.push(<div key={`e-${i}`} className="bg-white h-32"/>); for(let d=1; d<=daysInMonth; d++) { const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const ints = applications.filter(a => myJobs.some(j => j.id === a.jobId) && a.interviewDate === dateStr && a.status === 'Interview'); days.push(<div key={d} className="bg-white h-32 p-2 border-t hover:bg-gray-50 transition group"><span className="text-xs font-bold text-gray-400">{d}</span><div className="mt-2 space-y-1">{ints.map(i => <div key={i.id} className="text-[9px] font-bold p-1 bg-purple-50 text-purple-700 rounded border border-purple-100 truncate" title={`${allUsers.find(u => u.id === i.seekerId)?.name} @ ${i.interviewTime}`}>{i.interviewTime} {allUsers.find(u => u.id === i.seekerId)?.name}</div>)}</div></div>); } return days; })()}</div></div>
+              <div className="bg-white rounded-2xl shadow-sm border p-6"><div className="grid grid-cols-7 gap-px bg-gray-200 border rounded-xl overflow-hidden shadow-inner">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="bg-gray-50 py-3 text-center text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{d}</div>)}{(() => { const days = []; const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay(); const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate(); for(let i=0; i<firstDay; i++) days.push(<div key={`e-${i}`} className="bg-white h-32"/>); for(let d=1; d<=daysInMonth; d++) { const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const ints = applications.filter(a => myJobs.some(j => j._id === a.jobId) && a.interviewDate === dateStr && a.status === 'Interview'); days.push(<div key={d} className="bg-white h-32 p-2 border-t hover:bg-gray-50 transition group"><span className="text-xs font-bold text-gray-400">{d}</span><div className="mt-2 space-y-1">{ints.map(i => <div key={i._id} className="text-[9px] font-bold p-1 bg-purple-50 text-purple-700 rounded border border-purple-100 truncate" title={`${allUsers.find(u => u._id === i.seekerId)?.name} @ ${i.interviewTime}`}>{i.interviewTime} {allUsers.find(u => u._id === i.seekerId)?.name}</div>)}</div></div>); } return days; })()}</div></div>
             </div>
           )}
 
@@ -357,7 +357,7 @@ export const EmployerDashboard: React.FC = () => {
                <h2 className="text-2xl font-bold text-gray-900">Talent Sourcing</h2>
                <div className="bg-white p-6 rounded-2xl border flex flex-col md:flex-row gap-4"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/><input type="text" placeholder="Search seekers..." className="w-full pl-10 pr-4 py-2 border rounded-xl" value={candidateSearch} onChange={e => setCandidateSearch(e.target.value)}/></div><div className="md:w-48 relative"><MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/><select className="w-full pl-10 pr-4 py-2 border rounded-xl appearance-none bg-white" value={candidateLocation} onChange={e => setCandidateLocation(e.target.value)}><option value="">Any Location</option>{cities.map(c => <option key={c} value={c}>{c}</option>)}</select></div></div>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{filteredCandidates.map(c => (
-                    <div key={c.id} className="bg-white p-6 rounded-2xl border shadow-sm hover:border-primary-400 transition flex flex-col items-center text-center"><img src={c.avatar} className="w-20 h-20 rounded-full mb-4 border shadow-sm object-cover"/><h3 className="font-bold text-lg text-gray-900">{c.name}</h3><p className="text-sm text-primary-600 font-bold mb-4">{c.jobTitle || 'Candidate'}</p><button onClick={() => handleViewCandidate(c)} className="w-full py-2 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition">View CV Profile</button></div>
+                    <div key={c._id} className="bg-white p-6 rounded-2xl border shadow-sm hover:border-primary-400 transition flex flex-col items-center text-center"><img src={c.avatar} className="w-20 h-20 rounded-full mb-4 border shadow-sm object-cover"/><h3 className="font-bold text-lg text-gray-900">{c.name}</h3><p className="text-sm text-primary-600 font-bold mb-4">{c.jobTitle || 'Candidate'}</p><button onClick={() => handleViewCandidate(c)} className="w-full py-2 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition">View CV Profile</button></div>
                   ))}</div>
             </div>
           )}

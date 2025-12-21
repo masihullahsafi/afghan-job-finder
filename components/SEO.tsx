@@ -23,7 +23,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
 
     // Structured Data for Google Jobs
     if (jobData) {
-      const scriptId = `job-jsonld-${jobData.id}`;
+      const scriptId = `job-jsonld-${jobData._id}`;
       let script = document.getElementById(scriptId) as HTMLScriptElement;
       if (!script) {
         script = document.createElement('script');
@@ -40,7 +40,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
         "identifier": {
           "@type": "PropertyValue",
           "name": jobData.company,
-          "value": jobData.id
+          "value": jobData._id
         },
         "datePosted": jobData.postedDate,
         "validThrough": jobData.deadline,
@@ -76,7 +76,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
 
     return () => {
       if (jobData) {
-        const script = document.getElementById(`job-jsonld-${jobData.id}`);
+        const script = document.getElementById(`job-jsonld-${jobData._id}`);
         if (script) script.remove();
       }
     };

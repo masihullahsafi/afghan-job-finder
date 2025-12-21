@@ -19,7 +19,7 @@ export const Contact: React.FC = () => {
     
     // Save to context (Mock DB)
     const newMessage: ContactMessage = {
-        id: Date.now().toString(),
+        _id: Date.now().toString(),
         name: formData.name,
         email: formData.email,
         subject: formData.subject,
