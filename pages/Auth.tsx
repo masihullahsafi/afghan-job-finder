@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -94,6 +95,7 @@ export const Auth: React.FC = () => {
             return;
         }
 
+        // Fixed: Changed id to _id
         const newUser: User = {
             _id: Date.now().toString(),
             firstName,

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Search, MapPin, Users, Globe, Briefcase, ArrowRight } from 'lucide-react';
@@ -59,8 +60,10 @@ export const Companies: React.FC = () => {
             
             return (
             <div 
-                key={company.id} 
-                onClick={() => navigate(`/companies/${company.id}`)}
+                // Fixed: Changed company.id to company._id
+                key={company._id} 
+                // Fixed: Changed company.id to company._id
+                onClick={() => navigate(`/companies/${company._id}`)}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:border-primary-200 transition group flex flex-col h-full cursor-pointer relative overflow-hidden"
             >
                {/* Decorative top bar */}

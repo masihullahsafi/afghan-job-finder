@@ -87,7 +87,8 @@ export const Blog: React.FC = () => {
 
              <div className="grid grid-cols-2 md:grid-cols-1 gap-4 md:gap-8">
                {filteredPosts.length > 0 ? filteredPosts.map(post => (
-                 <div key={post.id} className="bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition group flex flex-col md:flex-row h-full">
+                 // Fixed: Changed post.id to post._id
+                 <div key={post._id} className="bg-white rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition group flex flex-col md:flex-row h-full">
                     <div className="md:w-2/5 h-32 md:h-auto overflow-hidden relative">
                       <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
                       <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-bold text-gray-900 shadow-sm">
@@ -100,7 +101,8 @@ export const Blog: React.FC = () => {
                            <span className="flex items-center gap-1"><Calendar size={12}/> {post.date}</span>
                            <span className="flex items-center gap-1"><Clock size={12}/> {post.readTime}</span>
                         </div>
-                        <Link to={`/blog/${post.id}`}>
+                        {/* Fixed: Changed post.id to post._id */}
+                        <Link to={`/blog/${post._id}`}>
                            <h2 className="text-sm md:text-2xl font-bold text-gray-900 mb-2 md:mb-3 group-hover:text-primary-600 transition leading-tight line-clamp-2">{post.title}</h2>
                         </Link>
                         <p className="text-gray-600 text-xs md:text-sm mb-2 md:mb-4 line-clamp-2 md:line-clamp-3 leading-relaxed hidden md:block">{post.excerpt}</p>
@@ -117,7 +119,8 @@ export const Blog: React.FC = () => {
                             </div>
                          </div>
                          <button 
-                            onClick={() => navigate(`/blog/${post.id}`)}
+                            // Fixed: Changed post.id to post._id
+                            onClick={() => navigate(`/blog/${post._id}`)}
                             className="text-primary-600 text-[10px] md:text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all bg-primary-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg"
                          >
                            Read <span className="hidden md:inline">Article</span> <ArrowRight size={14}/>

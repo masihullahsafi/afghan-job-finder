@@ -36,7 +36,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
       <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-1">Experience</h3>
       {user.experience && user.experience.length > 0 ? (
         user.experience.map((exp) => (
-          <div key={exp.id} className="mb-4">
+          // Fixed: Changed exp.id to exp._id
+          <div key={exp._id} className="mb-4">
             <div className="flex justify-between items-baseline mb-1">
               <h4 className="font-bold text-lg">{exp.title}</h4>
               <span className="text-sm text-gray-500 font-medium">{exp.startDate} - {exp.endDate}</span>
@@ -56,7 +57,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
       <h3 className="font-bold uppercase tracking-wider mb-4 border-b pb-1">Education</h3>
       {user.education && user.education.length > 0 ? (
         user.education.map((edu) => (
-          <div key={edu.id} className="mb-3">
+          // Fixed: Changed edu.id to edu._id
+          <div key={edu._id} className="mb-3">
             <div className="flex justify-between items-baseline">
               <h4 className="font-bold">{edu.degree}</h4>
               <span className="text-sm text-gray-500 font-medium">{edu.startDate} - {edu.endDate}</span>
@@ -117,7 +119,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
           <div className="mb-8">
             <h3 className="text-lg font-bold uppercase tracking-wider border-b-2 border-gray-900 pb-2 mb-4 text-gray-900">Experience</h3>
             {user.experience?.map(exp => (
-              <div key={exp.id} className="mb-5 last:mb-0">
+              // Fixed: Changed exp.id to exp._id
+              <div key={exp._id} className="mb-5 last:mb-0">
                 <div className="flex justify-between font-bold text-gray-900">
                   <h4>{exp.title}</h4>
                   <span className="text-sm">{exp.startDate} - {exp.endDate}</span>
@@ -130,7 +133,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
           <div>
             <h3 className="text-lg font-bold uppercase tracking-wider border-b-2 border-gray-900 pb-2 mb-4 text-gray-900">Education</h3>
             {user.education?.map(edu => (
-              <div key={edu.id} className="mb-3">
+              // Fixed: Changed edu.id to edu._id
+              <div key={edu._id} className="mb-3">
                 <div className="flex justify-between font-bold text-gray-900">
                   <h4>{edu.degree}</h4>
                   <span className="text-sm">{edu.startDate} - {edu.endDate}</span>
@@ -191,7 +195,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
                <div>
                  <h3 className="text-purple-600 font-bold uppercase tracking-widest text-sm mb-4">Experience</h3>
                  {user.experience?.map(exp => (
-                   <div key={exp.id} className="mb-6 relative pl-6 border-l-2 border-purple-100 last:mb-0">
+                   // Fixed: Changed exp.id to exp._id
+                   <div key={exp._id} className="mb-6 relative pl-6 border-l-2 border-purple-100 last:mb-0">
                      <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-purple-600"></div>
                      <h4 className="font-bold text-gray-900">{exp.title}</h4>
                      <p className="text-purple-600 text-sm font-medium mb-1">{exp.company} | {exp.startDate} - {exp.endDate}</p>
@@ -202,7 +207,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
                 <div>
                  <h3 className="text-purple-600 font-bold uppercase tracking-widest text-sm mb-4">Education</h3>
                  {user.education?.map(edu => (
-                   <div key={edu.id} className="mb-4">
+                   // Fixed: Changed edu.id to edu._id
+                   <div key={edu._id} className="mb-4">
                      <h4 className="font-bold text-gray-900">{edu.degree}</h4>
                      <p className="text-gray-500 text-sm">{edu.school} | {edu.startDate} - {edu.endDate}</p>
                    </div>
@@ -244,7 +250,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
               <div>
                 <h3 className="font-bold uppercase text-sm mb-4">Education</h3>
                 {user.education?.map(edu => (
-                  <div key={edu.id} className="mb-4">
+                  // Fixed: Changed edu.id to edu._id
+                  <div key={edu._id} className="mb-4">
                     <p className="font-bold text-sm">{edu.degree}</p>
                     <p className="text-xs text-gray-500">{edu.school}</p>
                     <p className="text-xs text-gray-400">{edu.startDate} - {edu.endDate}</p>
@@ -260,7 +267,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
               <div>
                 <h3 className="font-bold uppercase text-sm mb-6 bg-gray-100 p-1 pl-2">Experience</h3>
                 {user.experience?.map(exp => (
-                  <div key={exp.id} className="mb-8">
+                  // Fixed: Changed exp.id to exp._id
+                  <div key={exp._id} className="mb-8">
                     <div className="flex justify-between items-baseline mb-2">
                       <h4 className="font-bold text-lg">{exp.title}</h4>
                       <span className="text-xs font-mono text-gray-500">{exp.startDate} — {exp.endDate}</span>
@@ -302,7 +310,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
       <div className="mb-8">
         <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200 mb-4 pb-1">Experience</h3>
         {user.experience?.map(exp => (
-          <div key={exp.id} className="mb-5">
+          // Fixed: Changed exp.id to exp._id
+          <div key={exp._id} className="mb-5">
             <div className="flex justify-between items-baseline">
               <h4 className="font-bold text-gray-900 text-base">{exp.title}</h4>
               <span className="text-sm text-gray-500 font-medium italic">{exp.startDate} - {exp.endDate}</span>
@@ -317,7 +326,8 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
         <div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200 mb-4 pb-1">Education</h3>
           {user.education?.map(edu => (
-            <div key={edu.id} className="mb-3">
+            // Fixed: Changed edu.id to edu._id
+            <div key={edu._id} className="mb-3">
               <h4 className="font-bold text-gray-900 text-sm">{edu.degree}</h4>
               <p className="text-sm text-gray-600">{edu.school}</p>
               <p className="text-xs text-gray-500">{edu.startDate} - {edu.endDate}</p>
@@ -336,4 +346,3 @@ export const CVTemplates: React.FC<CVProps> = ({ user, theme }) => {
     </div>
   );
 };
-    

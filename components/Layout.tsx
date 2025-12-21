@@ -6,9 +6,9 @@ import { Menu, X, Globe, User, LogOut, Shield, Bell, MessageSquare, Crown, Chevr
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { language, setLanguage, t, user, logout, notifications, markNotificationAsRead, markAllNotificationsAsRead, chatMessages } = useAppContext();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [isNotifOpen, setIsNotifOpen] = React.useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -49,11 +49,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return () => { document.body.style.overflow = 'unset'; };
   }, [isMobileMenuOpen]);
 
-  const userNotifications = notifications.filter(n => n.userId === user?.id);
+  // Fixed: Changed user.id to user._id
+  const userNotifications = notifications.filter(n => n.userId === user?._id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
   
   // Chat Unread Count
-  const unreadMessages = user ? chatMessages.filter(m => m.receiverId === user.id && !m.isRead).length : 0;
+  // Fixed: Changed user.id to user._id
+  const unreadMessages = user ? chatMessages.filter(m => m.receiverId === user._id && !m.isRead).length : 0;
 
   // Active link helper
   const isActive = (path: string) => pathname === path;
@@ -136,9 +138,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                             {userNotifications.length > 0 ? (
                                 userNotifications.map(notif => (
                                   <div 
-                                    key={notif.id} 
+                                    // Fixed: Changed notif.id to notif._id
+                                    key={notif._id} 
                                     onClick={() => {
-                                      markNotificationAsRead(notif.id);
+                                      // Fixed: Changed notif.id to notif._id
+                                      markNotificationAsRead(notif._id);
                                       if(notif.link) {
                                         navigate(notif.link);
                                         setIsNotifOpen(false);

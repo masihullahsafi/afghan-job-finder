@@ -42,9 +42,11 @@ export const JobCompareModal: React.FC<JobCompareModalProps> = ({ isOpen, onClos
 
               {/* Jobs Columns */}
               {jobs.map(job => (
-                <div key={job.id} className="col-span-1 space-y-6 relative border-l border-gray-100 pl-4">
+                // Fixed: Changed job.id to job._id
+                <div key={job._id} className="col-span-1 space-y-6 relative border-l border-gray-100 pl-4">
                   <button 
-                    onClick={() => onRemoveJob(job.id)} 
+                    // Fixed: Changed job.id to job._id
+                    onClick={() => onRemoveJob(job._id)} 
                     className="absolute top-0 right-0 text-red-400 hover:text-red-600 p-1"
                     title="Remove"
                   >

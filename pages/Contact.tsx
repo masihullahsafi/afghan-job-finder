@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
@@ -18,6 +19,7 @@ export const Contact: React.FC = () => {
     e.preventDefault();
     
     // Save to context (Mock DB)
+    // Fixed: Changed id to _id
     const newMessage: ContactMessage = {
         _id: Date.now().toString(),
         name: formData.name,
@@ -153,7 +155,7 @@ export const Contact: React.FC = () => {
                     ></textarea>
                   </div>
                   <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 transition flex items-center justify-center gap-2">
-                    <Send size={18} /> {t('sendMessage')}
+                    <span className="flex items-center gap-2"><Send size={18} /> {t('sendMessage')}</span>
                   </button>
                 </form>
               )}

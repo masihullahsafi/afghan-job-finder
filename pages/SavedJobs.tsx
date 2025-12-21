@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -9,13 +10,15 @@ export const SavedJobs: React.FC = () => {
   const navigate = useNavigate();
 
   // Filter jobs based on savedJobIds from context
-  const savedJobs = jobs.filter(j => savedJobIds.includes(j.id));
+  // Fixed: Changed job.id to job._id
+  const savedJobs = jobs.filter(j => savedJobIds.includes(j._id));
 
   const handleCompanyClick = (e: React.MouseEvent, companyName: string) => {
     e.stopPropagation();
     const employer = allUsers.find(u => u.name === companyName && u.role === UserRole.EMPLOYER);
     if (employer) {
-        navigate(`/companies/${employer.id}`);
+        // Fixed: Changed employer.id to employer._id
+        navigate(`/companies/${employer._id}`);
     }
   };
 
@@ -34,15 +37,18 @@ export const SavedJobs: React.FC = () => {
                const companyExists = allUsers.some(u => u.name === job.company && u.role === UserRole.EMPLOYER);
                
                return (
-              <div key={job.id} className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition border border-gray-100 relative group">
+              // Fixed: Changed job.id to job._id
+              <div key={job._id} className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition border border-gray-100 relative group">
                 <button 
-                    onClick={(e) => { e.stopPropagation(); toggleSaveJob(job.id); }}
+                    // Fixed: Changed job.id to job._id
+                    onClick={(e) => { e.stopPropagation(); toggleSaveJob(job._id); }}
                     className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition p-2 bg-red-50 rounded-full shadow-sm z-10"
                     title="Remove from saved"
                 >
                     <Trash2 size={18} />
                 </button>
-                <div onClick={() => navigate(`/jobs/${job.id}`)} className="cursor-pointer">
+                {/* Fixed: Changed job.id to job._id */}
+                <div onClick={() => navigate(`/jobs/${job._id}`)} className="cursor-pointer">
                     <div className="flex items-start gap-4 mb-4">
                     <img src={job.companyLogo} alt={job.company} className="w-14 h-14 rounded-lg object-cover bg-gray-100" />
                     <div>

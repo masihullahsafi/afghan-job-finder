@@ -1,5 +1,4 @@
 
-
 export type Language = 'en' | 'fa' | 'ps';
 
 export enum UserRole {
@@ -83,7 +82,7 @@ export interface User {
   experience?: Experience[];
   education?: Education[];
   documents?: UserDocument[]; 
-  messageTemplates?: { id: string; name: string; content: string }[];
+  messageTemplates?: { _id: string; name: string; content: string }[];
   settings?: UserSettings; 
 }
 
@@ -122,7 +121,6 @@ export interface Job {
   yearsOfExperience?: string; 
 }
 
-// Added ApplicationTimeline interface for tracking application status updates
 export interface ApplicationTimeline {
   status: string;
   date: string;
@@ -143,12 +141,11 @@ export interface Application {
   interviewTime?: string;
   interviewMessage?: string;
   rejectionReason?: string; 
-  // Added timeline to match property usage in mock data
   timeline?: ApplicationTimeline[];
 }
 
 export interface BlogPost {
-  _id: number;
+  _id: string;
   title: string;
   excerpt: string;
   content: string;
@@ -202,14 +199,6 @@ export interface Event {
   category: string;
 }
 
-export interface TranslationDictionary {
-  [key: string]: {
-    en: string;
-    fa: string;
-    ps: string;
-  };
-}
-
 export interface Report {
   _id: string;
   jobId: string;
@@ -259,7 +248,6 @@ export interface QuizQuestion {
   correctAnswer: number; 
 }
 
-// Added JobAlert interface to resolve import errors in AppContext
 export interface JobAlert {
   _id: string;
   userId: string;
@@ -271,7 +259,6 @@ export interface JobAlert {
   isActive: boolean;
 }
 
-// Added Notification interface for system notifications
 export interface Notification {
   _id: string;
   userId: string;
@@ -282,7 +269,6 @@ export interface Notification {
   link?: string;
 }
 
-// Added ActivityLog interface for auditing user actions
 export interface ActivityLog {
   _id: string;
   userId: string;
@@ -291,7 +277,6 @@ export interface ActivityLog {
   timestamp: string;
 }
 
-// Added ContactMessage interface for form submissions in Contact.tsx
 export interface ContactMessage {
   _id: string;
   name: string;
@@ -300,4 +285,11 @@ export interface ContactMessage {
   message: string;
   date: string;
   read: boolean;
+}
+
+// Fixed: Export TranslationDictionary interface
+export interface TranslationDictionary {
+  [key: string]: {
+    [key in Language]: string;
+  };
 }

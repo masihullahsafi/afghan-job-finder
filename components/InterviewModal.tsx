@@ -58,7 +58,8 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
     // 2. Find specific application context if available
     let coverLetter = "";
     if (user && jobId) {
-        const app = applications.find(a => a.jobId === jobId && a.seekerId === user.id);
+        // Fixed: Changed user.id to user._id
+        const app = applications.find(a => a.jobId === jobId && a.seekerId === user._id);
         if (app) {
             coverLetter = app.coverLetter;
             userProfile += `\n\n[Application Status: ${app.status}]`;
@@ -112,9 +113,10 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
           const completionRate = sessionTranscript.length / questions.length;
           const score = Math.round(completionRate * (70 + Math.random() * 30)); // Random score 70-100 if completed
 
+          // Fixed: Changed id to _id and userId to user._id
           const session: InterviewSession = {
-              id: Date.now().toString(),
-              userId: user.id,
+              _id: Date.now().toString(),
+              userId: user._id,
               jobTitle,
               companyName,
               date: new Date().toISOString().split('T')[0],
@@ -160,7 +162,8 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
                {user && (
                  <span className="flex items-center gap-1 text-purple-600">
                    <User size={12}/> 
-                   Context: {user.name} {jobId && applications.find(a => a.jobId === jobId && a.seekerId === user.id) ? '(Applied)' : '(General)'}
+                   {/* Fixed: Changed user.id to user._id */}
+                   Context: {user.name} {jobId && applications.find(a => a.jobId === jobId && a.seekerId === user._id) ? '(Applied)' : '(General)'}
                  </span>
                )}
              </div>
@@ -243,7 +246,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
              {feedback ? (
                 <button 
                   onClick={handleNext}
-                  className="bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/30"
+                  className="bg-purple-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30"
                 >
                   {currentQuestionIndex === questions.length - 1 ? 'Finish Practice' : t('nextQuestion')} <ChevronRight size={18}/>
                 </button>
@@ -251,7 +254,7 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
                 <button 
                   onClick={handleSubmitAnswer}
                   disabled={isEvaluating || !userAnswer.trim()}
-                  className="bg-primary-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-primary-700 transition flex items-center gap-2 disabled:opacity-70 shadow-lg shadow-primary-500/20"
+                  className="bg-primary-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-primary-700 transition flex items-center justify-center gap-2 disabled:opacity-70 shadow-lg shadow-primary-500/20"
                 >
                   {isEvaluating ? (
                     <>

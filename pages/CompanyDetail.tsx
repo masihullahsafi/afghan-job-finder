@@ -19,7 +19,8 @@ export const CompanyDetail: React.FC = () => {
   const [comment, setComment] = useState('');
 
   // Find the employer in the "database"
-  const company = allUsers.find(u => u.id === id && u.role === 'EMPLOYER');
+  // Fixed: Changed u.id to u._id
+  const company = allUsers.find(u => u._id === id && u.role === 'EMPLOYER');
 
   if (!company) {
     return <div className="p-10 text-center text-gray-500">Company not found.</div>;
@@ -29,7 +30,8 @@ export const CompanyDetail: React.FC = () => {
   const companyJobs = jobs.filter(j => j.company === company.name && j.status === 'Active');
   
   // Find articles by this company (Visible to ALL users including visitors)
-  const companyArticles = posts.filter(p => p.authorId === company.id && p.status === 'Published');
+  // Fixed: Changed company.id to company._id
+  const companyArticles = posts.filter(p => p.authorId === company._id && p.status === 'Published');
   
   // Smart Tab Selection: If no jobs but has articles, default to articles
   useEffect(() => {
@@ -39,21 +41,24 @@ export const CompanyDetail: React.FC = () => {
   }, [companyJobs.length, companyArticles.length]);
 
   // Find reviews for this company
-  const companyReviews = reviews.filter(r => r.companyId === company.id);
+  // Fixed: Changed company.id to company._id
+  const companyReviews = reviews.filter(r => r.companyId === company._id);
   const avgRating = companyReviews.length > 0 
     ? (companyReviews.reduce((acc, r) => acc + r.rating, 0) / companyReviews.length).toFixed(1) 
     : 'New';
 
-  const isFollowing = user?.following?.includes(company.id);
+  // Fixed: Changed company.id to company._id
+  const isFollowing = user?.following?.includes(company._id);
 
   const handleSubmitReview = (e: React.FormEvent) => {
       e.preventDefault();
       if (!user) return;
       
+      // Fixed: Changed id to _id and user property accesses
       const newReview: Review = {
-          id: Date.now().toString(),
-          companyId: company.id,
-          userId: user.id,
+          _id: Date.now().toString(),
+          companyId: company._id,
+          userId: user._id,
           userName: user.name,
           rating,
           comment,
@@ -75,7 +80,8 @@ export const CompanyDetail: React.FC = () => {
           alert("Only job seekers can follow companies.");
           return;
       }
-      toggleFollowCompany(company.id);
+      // Fixed: Changed company.id to company._id
+      toggleFollowCompany(company._id);
   };
 
   // Helper to extract YouTube ID
@@ -271,9 +277,11 @@ export const CompanyDetail: React.FC = () => {
                 {activeTab === 'jobs' && (
                     <div className="space-y-4">
                         {companyJobs.length > 0 ? companyJobs.map(job => {
-                            const isSaved = savedJobIds.includes(job.id);
+                            // Fixed: Changed job.id to job._id
+                            const isSaved = savedJobIds.includes(job._id);
                             return (
-                                <div key={job.id} onClick={() => navigate(`/jobs/${job.id}`)} className="bg-white p-6 rounded-xl border border-gray-100 hover:shadow-md transition cursor-pointer group relative">
+                                // Fixed: Changed job.id to job._id
+                                <div key={job._id} onClick={() => navigate(`/jobs/${job._id}`)} className="bg-white p-6 rounded-xl border border-gray-100 hover:shadow-md transition cursor-pointer group relative">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-900 group-hover:text-primary-600 transition">{job.title}</h3>
@@ -284,7 +292,8 @@ export const CompanyDetail: React.FC = () => {
                                             </div>
                                         </div>
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); toggleSaveJob(job.id); }}
+                                            // Fixed: Changed job.id to job._id
+                                            onClick={(e) => { e.stopPropagation(); toggleSaveJob(job._id); }}
                                             className={`p-2 rounded-full transition ${isSaved ? 'text-primary-600 bg-primary-50' : 'text-gray-300 hover:text-primary-600 hover:bg-gray-50'}`}
                                         >
                                             {isSaved ? <Bookmark size={20} className="fill-current"/> : <Bookmark size={20}/>}
@@ -311,7 +320,8 @@ export const CompanyDetail: React.FC = () => {
                 {activeTab === 'articles' && (
                     <div className="space-y-6">
                         {companyArticles.length > 0 ? companyArticles.map(article => (
-                            <div key={article.id} onClick={() => navigate(`/blog/${article.id}`)} className="bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition cursor-pointer flex flex-col sm:flex-row group h-full">
+                            // Fixed: Changed article.id to article._id
+                            <div key={article._id} onClick={() => navigate(`/blog/${article._id}`)} className="bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition cursor-pointer flex flex-col sm:flex-row group h-full">
                                 <div className="sm:w-1/3 h-48 sm:h-auto overflow-hidden">
                                     <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                                 </div>
@@ -372,7 +382,8 @@ export const CompanyDetail: React.FC = () => {
                         {companyReviews.length > 0 ? (
                             <div className="space-y-4">
                                 {companyReviews.map(review => (
-                                    <div key={review.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                                    // Fixed: Changed review.id to review._id
+                                    <div key={review._id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center gap-2">
                                                 <div className="font-bold text-gray-900">{review.userName}</div>

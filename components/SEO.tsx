@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Job } from '../types';
 
@@ -23,6 +24,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
 
     // Structured Data for Google Jobs
     if (jobData) {
+      // Fixed: Changed jobData.id to jobData._id
       const scriptId = `job-jsonld-${jobData._id}`;
       let script = document.getElementById(scriptId) as HTMLScriptElement;
       if (!script) {
@@ -40,6 +42,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
         "identifier": {
           "@type": "PropertyValue",
           "name": jobData.company,
+          // Fixed: Changed jobData.id to jobData._id
           "value": jobData._id
         },
         "datePosted": jobData.postedDate,
@@ -76,6 +79,7 @@ export const SEO: React.FC<SEOProps> = ({ title, description, jobData }) => {
 
     return () => {
       if (jobData) {
+        // Fixed: Changed jobData.id to jobData._id
         const script = document.getElementById(`job-jsonld-${jobData._id}`);
         if (script) script.remove();
       }
