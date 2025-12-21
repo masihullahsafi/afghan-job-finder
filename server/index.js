@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -35,7 +36,9 @@ app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
 app.use(express.json({ limit: '10mb' }));
 
 // --- SCHEMAS ---
+// Note: We explicitly define _id as String to support custom timestamp IDs from frontend
 const JobSchema = new mongoose.Schema({
+  _id: String, 
   id: String,
   employerId: String,
   title: String,
@@ -67,9 +70,10 @@ const JobSchema = new mongoose.Schema({
   education: String,
   nationality: String,
   yearsOfExperience: String
-});
+}, { _id: false }); // Disable auto-generated ObjectId
 
 const UserSchema = new mongoose.Schema({
+  _id: String,
   id: String,
   firstName: String,
   lastName: String,
@@ -96,9 +100,10 @@ const UserSchema = new mongoose.Schema({
     date: String,
     size: String
   }]
-});
+}, { _id: false });
 
 const ApplicationSchema = new mongoose.Schema({
+  _id: String,
   id: String,
   jobId: String,
   seekerId: String,
@@ -113,7 +118,7 @@ const ApplicationSchema = new mongoose.Schema({
   interviewMessage: String,
   rejectionReason: String,
   screeningAnswers: [{ question: String, answer: String }]
-});
+}, { _id: false });
 
 const Job = mongoose.model('Job', JobSchema);
 const User = mongoose.model('User', UserSchema);
@@ -142,16 +147,22 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', db: isDbConnected 
 
 app.post('/api/register', async (req, res) => {
     try {
-        const { password, ...rest } = req.body;
+        const { id, password, ...rest } = req.body;
+        const userId = id || Date.now().toString();
+        
         if (!isDbConnected) {
-            return res.status(201).json({ ...rest, id: 'demo-' + Date.now(), status: 'Active' });
+            return res.status(201).json({ ...rest, id: userId, status: 'Active' });
         }
+        
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ ...rest, password: hashedPassword });
+        // Map id to _id for MongoDB compatibility with string IDs
+        const user = new User({ _id: userId, id: userId, ...rest, password: hashedPassword });
         await user.save();
+        
         const { password: _, ...userData } = user.toObject();
         res.status(201).json(userData);
     } catch (e) {
+        console.error("Registration Error:", e);
         res.status(500).json({ message: "Registration failed: " + e.message });
     }
 });
@@ -166,6 +177,7 @@ app.post('/api/login', async (req, res) => {
         if (!user || user.role !== role) return res.status(401).json({ message: "Invalid credentials." });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: "Invalid credentials." });
+        
         const { password: _, ...userData } = user.toObject();
         res.json(userData);
     } catch (e) {
@@ -182,8 +194,12 @@ app.get('/api/jobs', async (req, res) => {
 
 app.post('/api/jobs', async (req, res) => {
     try {
-        if (!isDbConnected) return res.json(req.body);
-        const job = new Job(req.body);
+        const { id, ...rest } = req.body;
+        const jobId = id || Date.now().toString();
+        
+        if (!isDbConnected) return res.json({ id: jobId, ...rest });
+        
+        const job = new Job({ _id: jobId, id: jobId, ...rest });
         await job.save();
         res.status(201).json(job);
     } catch (e) { res.status(500).json({ error: e.message }); }
