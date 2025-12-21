@@ -40,7 +40,8 @@ export const suggestScreeningQuestions = async (jobTitle: string, jobDescription
   try {
     const prompt = `Suggest 3 interview screening questions for "${jobTitle}" based on: "${jobDescription.substring(0, 500)}". Return ONLY a JSON array of strings.`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-    return JSON.parse(response.text || "[]");
+    const text = response.text || "[]";
+    return JSON.parse(text);
   } catch (error) { return ["Experience level?"]; }
 };
 
@@ -58,7 +59,8 @@ export const generateExperienceBulletPoints = async (jobTitle: string, company: 
   try {
     const prompt = `Generate 5 high-impact bullet points for a resume for "${jobTitle}" at "${company}". Return ONLY a JSON array.`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-    return JSON.parse(response.text || "[]");
+    const text = response.text || "[]";
+    return JSON.parse(text);
   } catch (error) { return ["Achieved KPIs."]; }
 };
 
@@ -86,11 +88,11 @@ export const validateResume = async (fileBase64: string, mimeType: string): Prom
       contents: { parts: [{ inlineData: { mimeType, data: fileBase64 } }, { text: prompt }] },
       config: { responseMimeType: 'application/json' }
     });
-    return JSON.parse(response.text || "{\"isValid\": true}");
+    const text = response.text || "{\"isValid\": true}";
+    return JSON.parse(text);
   } catch (error) { return { isValid: true }; }
 };
 
-// UPDATED: Accepting 4 arguments to include the optional cover letter for better question generation.
 export const generateInterviewQuestions = async (jobTitle: string, jobDescription: string, userProfile?: string, coverLetter?: string): Promise<string[]> => {
   if (!apiKey) return ["Tell me about yourself."];
   try {
@@ -100,7 +102,8 @@ export const generateInterviewQuestions = async (jobTitle: string, jobDescriptio
     Cover Letter: "${coverLetter || 'Not provided'}".
     Return ONLY JSON array of strings.`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-    return JSON.parse(response.text || "[]");
+    const text = response.text || "[]";
+    return JSON.parse(text);
   } catch (error) { return ["Tell me about yourself.", "Why are you interested in this role?"]; }
 };
 
@@ -118,7 +121,8 @@ export const analyzeJobMatch = async (jobTitle: string, jobDesc: string, userPro
     try {
         const prompt = `Compare candidate to job. Job: "${jobTitle}". Profile: "${userProfile}". Return ONLY JSON: { "score": number, "reason": "string", "strengths": [string], "missingSkills": [string] }`;
         const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-        return JSON.parse(response.text || "{}");
+        const text = response.text || "{}";
+        return JSON.parse(text);
     } catch (e) { return null; }
 };
 
@@ -127,7 +131,8 @@ export const generateSkillQuiz = async (topic: string): Promise<QuizQuestion[]> 
     try {
         const prompt = `Generate a 5-question multiple choice quiz for the skill "${topic}". Return ONLY JSON array: [{question: string, options: [string], correctAnswer: number}]`;
         const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-        return JSON.parse(response.text || "[]");
+        const text = response.text || "[]";
+        return JSON.parse(text);
     } catch (e) { return []; }
 };
 
@@ -136,6 +141,54 @@ export const analyzeArticleSEO = async (content: string, title: string): Promise
     try {
         const prompt = `Generate SEO tags for this blog post. Title: "${title}". Content: "${content.substring(0, 1000)}". Return ONLY JSON: { "seoTitle": "string", "seoDescription": "string", "keywords": [string] }`;
         const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
-        return JSON.parse(response.text || "{}");
+        const text = response.text || "{}";
+        return JSON.parse(text);
     } catch (e) { return { seoTitle: title, seoDescription: "", keywords: [] }; }
+};
+
+/**
+ * Suggests potential career paths based on the user's current role.
+ */
+export const generateCareerPath = async (currentRole: string): Promise<{title: string, steps: string[]}[]> => {
+  if (!apiKey) return [];
+  try {
+    const prompt = `Suggest 3 potential professional career paths for someone currently working as a "${currentRole}" in Afghanistan. For each path, provide a title and 4 clear development steps. Return ONLY a JSON array of objects with "title" and "steps" (array of strings) keys.`;
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
+    });
+    const text = response.text || "[]";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Career path generation failed:", error);
+    return [];
+  }
+};
+
+/**
+ * Parses a resume PDF/Image to extract profile information.
+ */
+export const parseResumeProfile = async (fileBase64: string, mimeType: string): Promise<{ name?: string, email?: string, phone?: string, bio?: string, skills?: string[] }> => {
+  if (!apiKey) return {};
+  try {
+    const prompt = `Extract professional profile information from this resume. 
+    Return ONLY a JSON object with keys: "name", "email", "phone", "bio" (short summary), and "skills" (array of strings). 
+    If a field is missing, omit it or set to null.`;
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: {
+        parts: [
+          { inlineData: { mimeType, data: fileBase64 } },
+          { text: prompt }
+        ]
+      },
+      config: { responseMimeType: 'application/json' }
+    });
+    const text = response.text || "{}";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Resume parsing failed:", error);
+    return {};
+  }
 };
