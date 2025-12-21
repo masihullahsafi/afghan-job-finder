@@ -1,5 +1,5 @@
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -31,13 +31,22 @@ if (isCloudinaryConfigured) {
     });
 }
 
+// SMTP Transporter Setup
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // or your SMTP provider
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     }
 });
+
+// Verify SMTP Connection at startup
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter.verify((error, success) => {
+        if (error) console.error("❌ SMTP Verification Failed:", error.message);
+        else console.log("✅ SMTP Server is ready to send emails");
+    });
+}
 
 const upload = multer({ 
     storage: multer.memoryStorage(),
@@ -98,7 +107,7 @@ const UserSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
   name: String,
-  email: { type: String, unique: true },
+  email: { type: String, unique: true, lowercase: true, trim: true },
   role: String,
   avatar: String,
   bio: String,
@@ -148,7 +157,10 @@ const OTP = mongoose.model('OTP', OTPSchema);
 // --- DB CONNECTION ---
 let isDbConnected = false;
 const connectDB = async () => {
-  if (!process.env.MONGO_URI) return;
+  if (!process.env.MONGO_URI) {
+      console.warn("⚠️ MONGO_URI missing. Check your .env file.");
+      return;
+  }
   try {
     await mongoose.connect(process.env.MONGO_URI);
     isDbConnected = true;
@@ -164,61 +176,79 @@ connectDB();
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password, ...rest } = req.body;
+        const normalizedEmail = email.toLowerCase().trim();
         
         if (!isDbConnected) {
-             return res.status(201).json({ ...rest, email, _id: Date.now().toString(), status: 'Active' });
+             return res.status(201).json({ ...rest, email: normalizedEmail, _id: Date.now().toString(), status: 'Active' });
         }
 
-        // STRICTOR CHECK FOR EXISTING USER
-        const existingUser = await User.findOne({ email });
+        // 1. Initial check for existing user
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(409).json({ 
-                message: "This email is already registered. Please log in or use 'Forgot Password'." 
+                message: "This email is already registered. Please log in." 
             });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = Date.now().toString();
-        const user = new User({ _id: userId, email, ...rest, password: hashedPassword, status: 'Pending' });
-        await user.save();
-
-        // Generate OTP
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        await OTP.findOneAndUpdate({ email }, { code }, { upsert: true });
+        const user = new User({ _id: userId, email: normalizedEmail, ...rest, password: hashedPassword, status: 'Pending' });
         
-        // REAL EMAIL SENDING
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            await transporter.sendMail({
-                from: `"Afghan Job Finder" <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: "Your Verification Code",
-                text: `Your verification code is: ${code}. It expires in 10 minutes.`,
-                html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                        <h2 style="color: #0284c7;">Welcome to Afghan Job Finder</h2>
-                        <p>Please use the following code to verify your account:</p>
-                        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #0c4a6e; margin: 20px 0;">${code}</div>
-                        <p style="font-size: 12px; color: #666;">This code will expire in 10 minutes.</p>
-                       </div>`
-            });
-            console.log(`✅ Email sent to ${email}`);
-        } else {
-            console.warn(`⚠️ EMAIL_USER/PASS missing. OTP for ${email}: ${code}`);
+        // 2. Save user - Wrap in specific catch for E11000 duplicate keys
+        try {
+            await user.save();
+        } catch (saveErr) {
+            if (saveErr.code === 11000) {
+                return res.status(409).json({ message: "This email is already registered." });
+            }
+            throw saveErr;
         }
 
-        res.status(201).json({ message: "OTP sent", requireVerification: true, email });
+        // 3. Generate and Save OTP
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await OTP.findOneAndUpdate({ email: normalizedEmail }, { code }, { upsert: true });
+        
+        // 4. Send Real Email
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                await transporter.sendMail({
+                    from: `"Afghan Job Finder" <${process.env.EMAIL_USER}>`,
+                    to: normalizedEmail,
+                    subject: "Your Verification Code",
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
+                            <h2 style="color: #0284c7;">Email Verification</h2>
+                            <p>Thank you for joining Afghan Job Finder. Please use the following 6-digit code to verify your account:</p>
+                            <div style="background: #f0f9ff; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #0c4a6e; text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; border: 1px solid #bae6fd;">
+                                ${code}
+                            </div>
+                            <p style="font-size: 13px; color: #666;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+                        </div>`
+                });
+                console.log(`✅ Verification email sent to ${normalizedEmail}`);
+            } catch (mailErr) {
+                console.error(`❌ Mail delivery failed to ${normalizedEmail}:`, mailErr.message);
+                // We don't return 500 here so the user can still try to verify if they saw the code in logs
+            }
+        } else {
+            console.warn(`⚠️ EMAIL_USER/PASS missing. OTP for ${normalizedEmail}: ${code}`);
+        }
+
+        res.status(201).json({ message: "OTP sent", requireVerification: true, email: normalizedEmail });
     } catch (e) {
         console.error("Registration error:", e);
-        res.status(500).json({ message: "Registration failed. Please try again later." });
+        res.status(500).json({ message: "Registration failed. Please try again." });
     }
 });
 
 app.post('/api/verify-email', async (req, res) => {
     const { email, otp } = req.body;
     try {
-        const record = await OTP.findOne({ email, code: otp });
+        const normalizedEmail = email.toLowerCase().trim();
+        const record = await OTP.findOne({ email: normalizedEmail, code: otp });
         if (!record) return res.status(400).json({ message: "Invalid or expired verification code." });
 
-        const user = await User.findOneAndUpdate({ email }, { status: 'Active' }, { new: true }).select('-password');
+        const user = await User.findOneAndUpdate({ email: normalizedEmail }, { status: 'Active' }, { new: true }).select('-password');
         await OTP.deleteOne({ _id: record._id });
 
         res.json({ user, success: true });
@@ -230,25 +260,26 @@ app.post('/api/verify-email', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     const { email, password, role } = req.body;
     try {
-        if (!isDbConnected) return res.status(200).json({ email, role, name: 'Demo User', _id: 'demo-user', plan: 'Premium', status: 'Active' });
+        const normalizedEmail = email.toLowerCase().trim();
+        if (!isDbConnected) return res.status(200).json({ email: normalizedEmail, role, name: 'Demo User', _id: 'demo-user', plan: 'Premium', status: 'Active' });
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
         
         if (!user) {
-            return res.status(404).json({ message: "We couldn't find an account with that email. Please check your spelling or register." });
+            return res.status(404).json({ message: "No account found with this email." });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid password. Try again or reset it." });
+            return res.status(401).json({ message: "Invalid password." });
         }
 
         if (user.status === 'Pending') {
-            return res.status(403).json({ message: "Account not verified.", requireVerification: true, email: user.email });
+            return res.status(403).json({ message: "Your account is not verified.", requireVerification: true, email: user.email });
         }
 
         if (user.role !== role) {
-            return res.status(403).json({ message: `This account is registered as a ${user.role}.` });
+            return res.status(403).json({ message: `Access denied. This account is registered as ${user.role}.` });
         }
         
         const { password: _, ...userData } = user.toObject();
