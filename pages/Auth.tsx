@@ -95,7 +95,6 @@ export const Auth: React.FC = () => {
         }
 
         const newUser: User = {
-            id: Date.now().toString(),
             firstName,
             lastName,
             name: `${firstName} ${lastName}`,
