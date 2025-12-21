@@ -3,9 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { FileText, Calendar, Briefcase, ChevronRight, Loader2, X, Edit2, Camera, Upload, Download, FolderOpen, LogOut, MessageSquare, Eye, Trash2, ShieldCheck, Sparkles, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { improveResumeSummary, fileToBase64 } from '../services/geminiService';
+import { improveResumeSummary } from '../services/geminiService';
 import { uploadFile } from '../src/services/api'; 
-import { UserDocument, User, Application } from '../types';
+import { UserDocument, User } from '../types';
 import { CVTemplates } from '../components/CVTemplates';
 
 declare var html2pdf: any;
@@ -38,6 +38,7 @@ export const SeekerDashboard: React.FC = () => {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-center"><p className="text-red-600 font-bold mb-4">{t('accessDenied')}</p><button onClick={() => navigate('/auth')} className="bg-primary-600 text-white px-6 py-2 rounded-lg">Login</button></div></div>;
   }
 
+  // Filter apps using the correct _id key
   const myApps = applications.filter(app => app.seekerId === user._id).map(app => ({
     ...app,
     job: jobs.find(j => j._id === app.jobId)
@@ -50,7 +51,10 @@ export const SeekerDashboard: React.FC = () => {
         const url = await uploadFile(file);
         await updateUserProfile({ avatar: url });
         alert("Avatar updated!");
-      } catch (err) { alert("Upload failed."); }
+      } catch (err) { 
+        console.error(err);
+        alert(err instanceof Error ? err.message : "Upload failed."); 
+      }
     }
   };
 
@@ -81,9 +85,30 @@ export const SeekerDashboard: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         size: (file.size / 1024).toFixed(0) + ' KB'
       };
-      await updateUserProfile({ documents: [newDoc, ...(user.documents || [])], resumeUrl: url, resume: file.name });
+      
+      const currentDocs = user.documents || [];
+      const updatedData: Partial<User> = { 
+        documents: [newDoc, ...currentDocs],
+        resumeUrl: url, 
+        resume: file.name 
+      };
+
+      await updateUserProfile(updatedData);
       alert("Resume uploaded!");
-    } catch (err) { alert("Upload failed."); } finally { setIsUploading(false); }
+    } catch (err) { 
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Upload failed."); 
+    } finally { 
+      setIsUploading(false); 
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteDocument = (docId: string) => {
+    if (confirm("Delete this document?")) {
+      const newDocs = user.documents?.filter(d => d._id !== docId) || [];
+      updateUserProfile({ documents: newDocs });
+    }
   };
 
   const handleDownloadPDF = () => {
@@ -162,19 +187,19 @@ export const SeekerDashboard: React.FC = () => {
                 <h2 className="text-xl font-bold text-gray-900">My Documents</h2>
                 <label className="bg-primary-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary-700 cursor-pointer flex items-center gap-2 transition">
                   {isUploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>} Upload New
-                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading}/>
+                  <input type="file" className="hidden" onChange={handleFileUpload} ref={fileInputRef} disabled={isUploading}/>
                 </label>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {user.documents?.map(doc => (
                   <div key={doc._id} className="bg-white p-4 rounded-xl border flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-red-50 p-2.5 rounded-lg text-red-600"><FileText size={20}/></div>
-                      <div><p className="font-bold text-gray-900 text-sm truncate max-w-[150px]">{doc.name}</p><p className="text-xs text-gray-400">{doc.date} • {doc.size}</p></div>
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="bg-red-50 p-2.5 rounded-lg text-red-600 flex-shrink-0"><FileText size={20}/></div>
+                      <div className="min-w-0"><p className="font-bold text-gray-900 text-sm truncate">{doc.name}</p><p className="text-xs text-gray-400">{doc.date} • {doc.size}</p></div>
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => window.open(doc.data, '_blank')} className="p-2 text-gray-400 hover:text-primary-600 transition"><Eye size={18}/></button>
-                      <button className="p-2 text-gray-400 hover:text-red-500 transition"><Trash2 size={18}/></button>
+                      <button onClick={() => handleDeleteDocument(doc._id)} className="p-2 text-gray-400 hover:text-red-500 transition"><Trash2 size={18}/></button>
                     </div>
                   </div>
                 ))}

@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-// Added Plus to the imports from lucide-react
-import { Shield, Trash2, Users, Briefcase, LogOut, CheckCircle, XCircle, BarChart2, ShieldCheck, Megaphone, Bell, Settings, Filter, Search, MoreVertical, ExternalLink, Plus } from 'lucide-react';
+import { Shield, Trash2, Users, Briefcase, LogOut, CheckCircle, XCircle, BarChart2, ShieldCheck, Megaphone, Bell, Search, ExternalLink, Plus, Filter, MoreVertical } from 'lucide-react';
 import { UserRole, User, Job, SystemAnnouncement } from '../types';
 import { SEO } from '../components/SEO';
 
@@ -11,7 +10,7 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, jobs, deleteJob, allUsers, deleteUser, approveUser, announcements, addAnnouncement, deleteAnnouncement, toggleAnnouncementStatus } = useAppContext();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'users' | 'verifications' | 'announcements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'users' | 'announcements'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Announcement Form
@@ -33,7 +32,6 @@ export const AdminDashboard: React.FC = () => {
   // Stats
   const seekerCount = allUsers.filter(u => u.role === UserRole.SEEKER).length;
   const employerCount = allUsers.filter(u => u.role === UserRole.EMPLOYER).length;
-  const pendingVerifications = allUsers.filter(u => u.verificationStatus === 'Pending');
 
   const filteredUsers = allUsers.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredJobs = jobs.filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()) || j.company.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -53,7 +51,7 @@ export const AdminDashboard: React.FC = () => {
       addAnnouncement(newAnn);
       setAnnTitle('');
       setAnnMsg('');
-      alert("Announcement posted.");
+      alert("Announcement posted system-wide.");
   };
 
   return (
@@ -69,7 +67,6 @@ export const AdminDashboard: React.FC = () => {
           <nav className="p-4 space-y-1">
               {[
                   { id: 'overview', label: 'Overview', icon: BarChart2 },
-                  { id: 'verifications', label: 'Verifications', icon: ShieldCheck, badge: pendingVerifications.length },
                   { id: 'users', label: 'Manage Users', icon: Users },
                   { id: 'jobs', label: 'Manage Jobs', icon: Briefcase },
                   { id: 'announcements', label: 'Announcements', icon: Megaphone },
@@ -77,12 +74,11 @@ export const AdminDashboard: React.FC = () => {
                   <button 
                     key={item.id} 
                     onClick={() => setActiveTab(item.id as any)} 
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition ${activeTab === item.id ? 'bg-white/10 text-white font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition ${activeTab === item.id ? 'bg-white/10 text-white font-bold border-l-4 border-red-600' : 'text-gray-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'}`}
                   >
                       <div className="flex items-center gap-3">
                           <item.icon size={20} /> {item.label}
                       </div>
-                      {item.badge ? <span className="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{item.badge}</span> : null}
                   </button>
               ))}
               <div className="pt-10">
@@ -130,7 +126,7 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                       </div>
                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                          <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Employers</p>
+                          <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Total Employers</p>
                           <div className="flex items-end justify-between">
                               <span className="text-4xl font-extrabold text-gray-900">{employerCount}</span>
                               <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Shield size={24}/></div>
@@ -140,15 +136,15 @@ export const AdminDashboard: React.FC = () => {
                   
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                       <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                          <h3 className="font-bold text-gray-900">Recent System Activity</h3>
-                          <button className="text-sm text-primary-600 font-bold hover:underline">View All</button>
+                          <h3 className="font-bold text-gray-900">System Logs</h3>
+                          <button className="text-sm text-primary-600 font-bold hover:underline">Clear Logs</button>
                       </div>
                       <div className="p-6 space-y-4">
                           {jobs.slice(0, 5).map(j => (
                               <div key={j._id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                                   <div className="flex items-center gap-3">
                                       <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><Briefcase size={20} className="text-gray-400"/></div>
-                                      <div><p className="text-sm font-bold text-gray-900">{j.title}</p><p className="text-xs text-gray-500">Posted by {j.company}</p></div>
+                                      <div><p className="text-sm font-bold text-gray-900">New job: {j.title}</p><p className="text-xs text-gray-500">By {j.company}</p></div>
                                   </div>
                                   <span className="text-xs text-gray-400">{j.postedDate}</span>
                               </div>
@@ -158,69 +154,31 @@ export const AdminDashboard: React.FC = () => {
               </div>
           )}
 
-          {/* VERIFICATIONS */}
-          {activeTab === 'verifications' && (
-              <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                      <table className="w-full text-left text-sm">
-                          <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-                              <tr>
-                                  <th className="px-6 py-4">Employer</th>
-                                  <th className="px-6 py-4">Registration Email</th>
-                                  <th className="px-6 py-4">License</th>
-                                  <th className="px-6 py-4 text-right">Actions</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                              {pendingVerifications.length > 0 ? pendingVerifications.map(u => (
-                                  <tr key={u._id} className="hover:bg-gray-50 transition">
-                                      <td className="px-6 py-4">
-                                          <div className="flex items-center gap-3">
-                                              <img src={u.avatar} className="w-10 h-10 rounded-lg object-cover" />
-                                              <span className="font-bold text-gray-900">{u.name}</span>
-                                          </div>
-                                      </td>
-                                      <td className="px-6 py-4 text-gray-600">{u.email}</td>
-                                      <td className="px-6 py-4">
-                                          {u.verificationDocument ? (
-                                              <button onClick={() => window.open(u.verificationDocument, '_blank')} className="text-primary-600 font-bold hover:underline flex items-center gap-1">
-                                                  <ExternalLink size={14}/> View Document
-                                              </button>
-                                          ) : <span className="text-gray-400">Not uploaded</span>}
-                                      </td>
-                                      <td className="px-6 py-4 text-right">
-                                          <div className="flex justify-end gap-2">
-                                              <button onClick={() => approveUser(u._id)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-700 transition flex items-center gap-1"><CheckCircle size={14}/> Approve</button>
-                                              <button className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 transition flex items-center gap-1"><XCircle size={14}/> Reject</button>
-                                          </div>
-                                      </td>
-                                  </tr>
-                              )) : (
-                                  <tr><td colSpan={4} className="p-12 text-center text-gray-400">No pending verifications.</td></tr>
-                              )}
-                          </tbody>
-                      </table>
-                  </div>
-              </div>
-          )}
-
           {/* USERS */}
           {activeTab === 'users' && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                    <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-                            <tr><th className="px-6 py-4">Name</th><th className="px-6 py-4">Role</th><th className="px-6 py-4">Plan</th><th className="px-6 py-4 text-right">Actions</th></tr>
+                            <tr><th className="px-6 py-4">Name</th><th className="px-6 py-4">Role</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Actions</th></tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {filteredUsers.map(u => (
                                 <tr key={u._id} className="hover:bg-gray-50 transition">
                                     <td className="px-6 py-4">
-                                        <div><p className="font-bold text-gray-900">{u.name}</p><p className="text-xs text-gray-500">{u.email}</p></div>
+                                        <div className="flex items-center gap-3">
+                                            <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.name}`} className="w-8 h-8 rounded-full" />
+                                            <div><p className="font-bold text-gray-900">{u.name}</p><p className="text-xs text-gray-500">{u.email}</p></div>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${u.role === UserRole.EMPLOYER ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>{u.role}</span></td>
-                                    <td className="px-6 py-4 text-gray-600">{u.plan || 'Free'}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${u.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{u.status}</span>
+                                    </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button onClick={() => { if(confirm('Delete user?')) deleteUser(u._id); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button>
+                                        <div className="flex justify-end gap-2">
+                                            {u.status === 'Pending' && <button onClick={() => approveUser(u._id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Verify User"><CheckCircle size={18}/></button>}
+                                            <button onClick={() => { if(confirm('Permanently delete this user?')) deleteUser(u._id); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -243,7 +201,7 @@ export const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4 text-gray-600">{j.company}</td>
                                     <td className="px-6 py-4"><span className="bg-green-50 text-green-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">{j.status}</span></td>
                                     <td className="px-6 py-4 text-right">
-                                        <button onClick={() => { if(confirm('Delete job?')) deleteJob(j._id); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button>
+                                        <button onClick={() => { if(confirm('Delete job listing?')) deleteJob(j._id); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18}/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -264,21 +222,22 @@ export const AdminDashboard: React.FC = () => {
                               <div><label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wider">Type</label><select value={annType} onChange={e => setAnnType(e.target.value as any)} className="w-full border p-2 rounded-xl bg-white">{['Info', 'Warning', 'Urgent'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                               <div><label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wider">Target</label><select value={annTarget} onChange={e => setAnnTarget(e.target.value as any)} className="w-full border p-2 rounded-xl bg-white">{['All', 'Seekers', 'Employers'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                           </div>
-                          <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-bold hover:bg-primary-700 transition">Post System-wide</button>
+                          <button type="submit" className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition">Broadcast Message</button>
                       </form>
                   </div>
                   
                   <div className="space-y-4">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">Active Announcements</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Active Broadcasts</h3>
                       {announcements.map(ann => (
                           <div key={ann._id} className={`p-4 rounded-xl border flex items-start justify-between shadow-sm ${ann.type === 'Urgent' ? 'bg-red-50 border-red-100' : ann.type === 'Warning' ? 'bg-yellow-50 border-yellow-100' : 'bg-blue-50 border-blue-100'}`}>
                               <div className="flex gap-3">
                                   <div className={`p-2 rounded-lg ${ann.type === 'Urgent' ? 'text-red-600' : 'text-primary-600'}`}><Bell size={20}/></div>
-                                  <div><h4 className="font-bold text-sm text-gray-900">{ann.title}</h4><p className="text-xs text-gray-600 leading-relaxed mt-1">{ann.message}</p></div>
+                                  <div><h4 className="font-bold text-sm text-gray-900">{ann.title}</h4><p className="text-xs text-gray-600 mt-1">{ann.message}</p></div>
                               </div>
                               <button onClick={() => deleteAnnouncement(ann._id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
                           </div>
                       ))}
+                      {announcements.length === 0 && <div className="p-12 text-center text-gray-400 bg-white rounded-xl border border-dashed">No active announcements.</div>}
                   </div>
               </div>
           )}

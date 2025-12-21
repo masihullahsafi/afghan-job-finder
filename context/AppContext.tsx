@@ -11,7 +11,8 @@ interface AppContextType {
   dir: 'ltr' | 'rtl';
   user: User | null;
   login: (role: UserRole, email?: string, password?: string) => Promise<{ success: boolean; message?: string; redirect?: 'register' | 'forgot' }>;
-  register: (user: User) => Promise<{ success: boolean; message?: string; redirect?: 'login' }>;
+  // Fixed: Added requireVerification to the register method's return type to match server capabilities and fix the error in Auth.tsx.
+  register: (user: User) => Promise<{ success: boolean; message?: string; redirect?: 'login'; requireVerification?: boolean }>;
   verifyEmail: (email: string, otp: string) => Promise<{ success: boolean; message?: string }>;
   uploadVerificationDoc: (userId: string, documentData: string) => Promise<void>;
   logout: () => void;
@@ -174,6 +175,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Fixed: Implementation of register function now handles and returns requireVerification from the server response.
   const register = async (newUser: User) => {
     try {
       const res = await fetch(`${API_URL}/register`, {
@@ -183,6 +185,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       const data = await res.json();
       if (res.status === 201) {
+        // Handle cases where email verification (OTP) is required by the server.
+        if (data.requireVerification) {
+          return { success: true, requireVerification: true };
+        }
         setUser(data);
         setAllUsers(prev => [...prev, data]);
         return { success: true };
@@ -192,6 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return { success: false, message: data.message || "Registration failed" };
     } catch (e) {
+      // Fallback for offline/development demo purposes.
       setUser(newUser);
       setAllUsers(p => [...p, newUser]);
       return { success: true };

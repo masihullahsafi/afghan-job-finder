@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { UserRole, User } from '../types';
-import { Info, ArrowLeft, Loader2, Check, AlertCircle, Eye, EyeOff, Mail, Key, UserCircle } from 'lucide-react';
+import { Info, ArrowLeft, Loader2, Check, AlertCircle, Eye, EyeOff, Mail, Key, UserCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 import { SEO } from '../components/SEO';
 
 export const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgot, setIsForgot] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [role, setRole] = useState<UserRole>(UserRole.SEEKER);
   
   // Form Data
@@ -17,26 +18,36 @@ export const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  const { login, register, t } = useAppContext();
+  const { login, register, verifyEmail, t } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from;
 
-  const handleAuthSuccess = () => {
-    if (from) {
-      navigate(from.pathname + from.search + from.hash);
-    } else {
-      const user = JSON.parse(localStorage.getItem('ajf_user') || '{}');
-      if (user.role === UserRole.ADMIN) navigate('/admin');
-      else if (user.role === UserRole.EMPLOYER) navigate('/employer');
-      else navigate('/seeker');
-    }
+  const handleAuthSuccess = (userData?: any) => {
+    const user = userData || JSON.parse(localStorage.getItem('ajf_user') || '{}');
+    if (user.role === UserRole.ADMIN) navigate('/admin');
+    else if (user.role === UserRole.EMPLOYER) navigate('/employer');
+    else navigate('/seeker');
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
+      setError('');
+      const res = await verifyEmail(email, otpCode);
+      if (res.success) {
+          handleAuthSuccess();
+      } else {
+          setError(res.message || "Invalid code.");
+      }
+      setIsLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,18 +62,28 @@ export const Auth: React.FC = () => {
         }
 
         if (isLogin) {
-            const result = await login(role, email, password);
-            if (result.success) {
+            const result = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, role })
+            });
+            const data = await result.json();
+
+            if (result.status === 200) {
+                // Success: Update context and redirect
+                await login(role, email, password); // Sync context
                 handleAuthSuccess();
+            } else if (result.status === 404) {
+                // Not Found: Take to registration
+                setError(data.message);
+                setTimeout(() => { setIsLogin(false); setError(''); }, 2000);
+            } else if (result.status === 401) {
+                // Wrong Password
+                setError(data.message);
+            } else if (result.status === 403 && data.requireVerification) {
+                setIsVerifying(true);
             } else {
-                setError(result.message || "");
-                if (result.redirect === 'register') {
-                    // Pre-fill email and switch to register
-                    setTimeout(() => { setIsLogin(false); setError(result.message || ""); }, 2000);
-                }
-                if (result.redirect === 'forgot') {
-                    // Password wrong, show option
-                }
+                setError(data.message || "Login failed.");
             }
             setIsLoading(false);
             return;
@@ -78,14 +99,16 @@ export const Auth: React.FC = () => {
             avatar: `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=random`
         };
 
-        const result = await register(newUser);
-        if (result.success) {
-            handleAuthSuccess();
-        } else {
-            setError(result.message || "");
-            if (result.redirect === 'login') {
-                setTimeout(() => { setIsLogin(true); setError(result.message || ""); }, 2000);
+        const regRes = await register(newUser);
+        if (regRes.success) {
+            if (regRes.requireVerification) {
+                setIsVerifying(true);
+            } else {
+                handleAuthSuccess();
             }
+        } else {
+            setError(regRes.message || "");
+            // If already registered, don't switch tab, but show message with forgot pass link
         }
         setIsLoading(false);
 
@@ -94,6 +117,39 @@ export const Auth: React.FC = () => {
         setIsLoading(false);
     }
   };
+
+  if (isVerifying) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+              <SEO title="Verify Email" />
+              <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-gray-100 text-center animate-in zoom-in duration-300">
+                  <div className="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <ShieldCheck size={32} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify your account</h2>
+                  <p className="text-sm text-gray-500 mb-8">We've sent a 6-digit code to <br/><strong>{email}</strong></p>
+                  
+                  {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm mb-4">{error}</div>}
+                  
+                  <form onSubmit={handleVerify} className="space-y-6">
+                      <input 
+                        type="text" 
+                        maxLength={6} 
+                        value={otpCode} 
+                        onChange={e => setOtpCode(e.target.value)}
+                        className="w-full text-center text-3xl font-bold tracking-[0.5em] py-3 border-2 border-gray-100 rounded-xl focus:border-primary-500 focus:ring-0 outline-none transition"
+                        placeholder="000000"
+                        required
+                      />
+                      <button disabled={isLoading} className="w-full bg-primary-600 text-white py-3 rounded-xl font-bold hover:bg-primary-700 transition flex items-center justify-center gap-2">
+                          {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Verify Account'}
+                      </button>
+                  </form>
+                  <button onClick={() => setIsVerifying(false)} className="mt-6 text-sm font-medium text-gray-500 hover:text-primary-600">Back to form</button>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
@@ -115,9 +171,9 @@ export const Auth: React.FC = () => {
         </div>
 
         {error && (
-            <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-4 animate-in slide-in-from-top-2 duration-300 ${error.includes("already") || error.includes("Redirecting") ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-red-50 text-red-600 border border-red-100"}`}>
+            <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-4 animate-in slide-in-from-top-2 duration-300 ${error.includes("already") || error.includes("Redirecting") || error.includes("find") ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-red-50 text-red-600 border border-red-100"}`}>
                 <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
-                <span>{error}</span>
+                <span>{error} {error.includes("account with us") && <button onClick={() => {setIsLogin(true); setIsForgot(true); setError('');}} className="underline font-bold ml-1">Forgot Password?</button>}</span>
             </div>
         )}
 

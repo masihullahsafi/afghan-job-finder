@@ -1,15 +1,9 @@
 
 // This service handles communication with our Backend API
-
-// We use a relative path '/api'. 
-// In Development: Vite proxy forwards this to http://localhost:5050/api
-// In Production: The Express server serves the frontend and handles /api routes on the same port.
 const API_BASE = '/api';
 
 /**
- * Uploads a file to the backend, which sends it to Cloudinary.
- * @param file The file object from input.
- * @returns Promise resolving to the URL string.
+ * Uploads a file to the backend, which sends it to Cloudinary or returns Base64.
  */
 export const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -22,11 +16,12 @@ export const uploadFile = async (file: File): Promise<string> => {
     });
 
     if (!response.ok) {
-      throw new Error('Upload failed');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Upload failed with status ${response.status}`);
     }
 
     const data = await response.json();
-    return data.url; // The secure Cloudinary URL
+    return data.url; 
   } catch (error) {
     console.error("API Upload Error:", error);
     throw error;
@@ -36,7 +31,7 @@ export const uploadFile = async (file: File): Promise<string> => {
 /**
  * Calls the backend AI proxy to generate text.
  */
-export const generateAIContent = async (prompt: string, model: string = 'gemini-2.5-flash', config?: any) => {
+export const generateAIContent = async (prompt: string, model: string = 'gemini-3-flash-preview', config?: any) => {
   try {
     const response = await fetch(`${API_BASE}/ai/generate`, {
         method: 'POST',
