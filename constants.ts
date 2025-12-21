@@ -1,5 +1,6 @@
 
-import { Job, TranslationDictionary, Application, Company, User, UserRole, Report, Review, BlogPost, ChatMessage, CommunityPost, InterviewSession, SystemAnnouncement, Event } from './types';
+
+import { Job, TranslationDictionary, Application, User, UserRole, Report, Review, BlogPost, ChatMessage, CommunityPost, InterviewSession, SystemAnnouncement, Event } from './types';
 
 // Minimal valid PDF (Blank page with "Mock Resume" text approximation)
 export const MOCK_PDF_BASE64 = "JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXwKICAvTWVkaWFCb3ggWyAwIDAgNTk1LjI4IDg0MS44OSBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1N5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSCGMgICAgPj4KICA+PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9udAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvSGVsdmV0aWNhCj4+CmVuZG9iagoKNSAwIG9iago8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJUCjcwIDcwIFRECi9GMSAyNCBUZgoKKE1vY2sgUmVzdW1lIERvd25sb2FkKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCgp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTAgMDAwMDAgbiAKMDAwMDAwMDA2MCAwMDAwMCBuIAowMDAwMDAwMTU3IDAwMDAwIG4gCjAwMDAwMDAyNjYgMDAwMDAgbiAKMDAwMDAwMDM1MyAwMDAwMCBuIAp0cmFpbGVyCjw8CiAgL1NpemUgNgogIC9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0NDgKJSVFT0YK";
@@ -660,7 +661,7 @@ export const TRANSLATIONS: TranslationDictionary = {
   companies: { en: 'Companies', fa: 'شرکت‌ها', ps: 'شرکتونه' },
   login: { en: 'Login', fa: 'ورود', ps: 'ننوتل' },
   register: { en: 'Register', fa: 'ثبت نام', ps: 'راپور' },
-  dashboard: { en: 'Dashboard', fa: 'داشبورد', ps: 'ډشبورډ' },
+  dashboard: { en: 'Dashboard', fa: 'داشبورد کارجو', ps: 'ډشبورډ' },
   logout: { en: 'Logout', fa: 'خروج', ps: 'وتل' },
   blog: { en: 'Career Advice', fa: 'مشاوره شغلی', ps: 'د کار مشوره' },
   about: { en: 'About Us', fa: 'درباره ما', ps: 'زموږ په اړه' },
@@ -849,7 +850,7 @@ export const TRANSLATIONS: TranslationDictionary = {
   
   // New Translations
   salaryExplorerTitle: { en: 'What are you worth?', fa: 'ارزش شغلی شما چقدر است؟', ps: 'ستاسو د کار ارزښت څومره دی؟' },
-  salaryExplorerSubtitle: { en: 'Discover average salaries for any job title in Afghanistan to help you negotiate better.', fa: 'معاش متوسط برای هر عنوان شغلی در افغانستان را کشف کنید تا بهتر مذاکره کنید.', ps: 'په افغانستان کې د هرې دندې سرلیک لپاره اوسط معاش ومومئ ترڅو تاسو سره په ښه خبرو اترو کې مرسته وکړي.' },
+  salaryExplorerSubtitle: { en: 'Discover average salaries for any job title in Afghanistan to help you negotiate better.', fa: 'معاش متوسط برای هر عنوان شغلی در افغانستان را کشف کنید تا بهتر مذاکره کنید.', ps: 'په افغانستان کې د هرې دندې سرلیک لپاره اوسط معاش ومومئ تر تاسو سره په ښه خبرو اترو کې مرسته وکړي.' },
   careerTrajectory: { en: 'Career Trajectory', fa: 'مسیر شغلی', ps: 'د مسلک لاره' },
   estimatedSalary: { en: 'Estimated Salary for', fa: 'معاش تخمینی برای', ps: 'لپاره اټکل شوی معاش' },
   eventsTitle: { en: 'Upcoming Events', fa: 'رویدادهای آینده', ps: 'راتلونکې پیښې' },

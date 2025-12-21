@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';

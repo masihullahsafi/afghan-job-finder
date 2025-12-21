@@ -1,7 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { QuizQuestion } from "../types.ts";
+import { QuizQuestion } from "../types";
 
-// --- INTERFACES ---
 export interface MatchAnalysisResult {
   score: number; 
   reason: string; 
@@ -9,21 +8,11 @@ export interface MatchAnalysisResult {
   missingSkills: string[]; 
 }
 
-// --- INITIALIZATION ---
-// Safe check for environment variables in various execution contexts
-const getApiKey = () => {
-    try {
-        return (typeof process !== 'undefined' && process.env?.API_KEY) || '';
-    } catch (e) {
-        return '';
-    }
-};
-
-const apiKey = getApiKey();
-const ai = new GoogleGenAI({ apiKey });
+// Initializing Google GenAI client correctly using the API key from environment variables.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const DEFAULT_MODEL = 'gemini-3-flash-preview';
+const apiKey = process.env.API_KEY;
 
-// --- UTILITIES ---
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader(); 
@@ -37,53 +26,40 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// --- AI FUNCTIONS ---
-
 export const generateJobDescription = async (title: string, skills: string): Promise<string> => {
-  if (!apiKey) {
-    console.warn("API Key is missing for Gemini Service");
-    return "AI service unavailable without API Key. Please write description manually.";
-  }
+  if (!apiKey) return "AI Key missing. Please write manually.";
   try {
-    const prompt = `Write a professional job description for a "${title}" position in Afghanistan requiring: "${skills}". Include summary, responsibilities, requirements.`;
+    const prompt = `Act as an HR expert in Afghanistan. Write a professional job description for "${title}". Requirements: "${skills}". Include intro, duties, and qualifications.`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt });
-    return response.text || "Could not generate description.";
-  } catch (error) { return "Error generating description."; }
+    return response.text || "Failed to generate.";
+  } catch (error) { return "Error calling AI."; }
 };
 
 export const suggestScreeningQuestions = async (jobTitle: string, jobDescription: string): Promise<string[]> => {
-  if (!apiKey) return ["Do you have relevant experience?", "When can you start?"];
+  if (!apiKey) return ["Do you have relevant experience?"];
   try {
-    const prompt = `Suggest 3 screening questions for "${jobTitle}". Desc: "${jobDescription.substring(0, 300)}...". Return ONLY a valid JSON array of strings.`;
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+    const prompt = `Suggest 3 interview screening questions for "${jobTitle}" based on: "${jobDescription.substring(0, 500)}". Return ONLY a JSON array of strings.`;
+    const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
     return JSON.parse(response.text || "[]");
-  } catch (error) { return ["Do you have relevant experience?"]; }
+  } catch (error) { return ["Experience level?"]; }
 };
 
 export const improveResumeSummary = async (currentSummary: string): Promise<string> => {
    if (!apiKey) return currentSummary;
    try {
-    const prompt = `Improve this professional summary for an Afghan CV, making it concise and impactful: "${currentSummary}"`;
+    const prompt = `Rewrite this professional summary to be more impactful and concise for a resume: "${currentSummary}"`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt });
     return response.text || currentSummary;
    } catch (error) { return currentSummary; }
 };
 
 export const generateExperienceBulletPoints = async (jobTitle: string, company: string): Promise<string[]> => {
-  if (!apiKey) return ["Managed daily operations.", "Collaborated with team."];
+  if (!apiKey) return ["Managed team operations."];
   try {
-    const prompt = `Generate 5 professional CV bullet points for "${jobTitle}" at "${company}". Return ONLY a valid JSON array of strings.`;
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+    const prompt = `Generate 5 high-impact bullet points for a resume for "${jobTitle}" at "${company}". Return ONLY a JSON array.`;
+    const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
     return JSON.parse(response.text || "[]");
-  } catch (error) { return ["Managed daily operations."]; }
+  } catch (error) { return ["Achieved KPIs."]; }
 };
 
 export const generateCoverLetter = async (
@@ -91,20 +67,20 @@ export const generateCoverLetter = async (
 ): Promise<string> => {
   if (!apiKey) return "AI service unavailable.";
   try {
-    const textPrompt = `Write a persuasive cover letter for "${jobTitle}" at "${companyName}" by "${candidateName}". Profile: "${candidateProfile}". Keep it under 200 words.`;
+    const textPrompt = `Write a professional cover letter for "${jobTitle}" at "${companyName}". Applicant: "${candidateName}". Profile info: "${candidateProfile}". Keep it professional.`;
     let contents: any = { parts: [{ text: textPrompt }] };
     if (resumeBase64 && resumeMimeType) {
       contents = { parts: [{ inlineData: { mimeType: resumeMimeType, data: resumeBase64 } }, { text: textPrompt }] };
     }
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents });
-    return response.text || "Could not generate cover letter.";
+    return response.text || "Failed to generate.";
   } catch (error) { return "Error generating cover letter."; }
 };
 
 export const validateResume = async (fileBase64: string, mimeType: string): Promise<{ isValid: boolean; reason?: string }> => {
-  if (!apiKey || (!mimeType.includes('pdf') && !mimeType.includes('image'))) return { isValid: true };
+  if (!apiKey) return { isValid: true };
   try {
-     const prompt = `Analyze if this document is a valid CV/Resume. Return ONLY JSON: { "isValid": boolean, "reason": "string" }.`;
+     const prompt = `Verify if this document is a valid professional CV/Resume. Return ONLY JSON: { "isValid": boolean, "reason": "string" }`;
      const response = await ai.models.generateContent({
       model: DEFAULT_MODEL,
       contents: { parts: [{ inlineData: { mimeType, data: fileBase64 } }, { text: prompt }] },
@@ -114,89 +90,52 @@ export const validateResume = async (fileBase64: string, mimeType: string): Prom
   } catch (error) { return { isValid: true }; }
 };
 
-export const parseResumeProfile = async (fileBase64: string, mimeType: string): Promise<{ name?: string, email?: string, phone?: string, bio?: string, skills?: string[] }> => {
-    if (!apiKey) return {};
-    try {
-        const prompt = `Extract profile info (name, email, phone, bio, skills) from this resume. Return ONLY JSON.`;
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: { parts: [{ inlineData: { mimeType, data: fileBase64 } }, { text: prompt }] },
-            config: { responseMimeType: 'application/json' }
-        });
-        return JSON.parse(response.text || "{}");
-    } catch (e) { return {}; }
-};
-
+// UPDATED: Accepting 4 arguments to include the optional cover letter for better question generation.
 export const generateInterviewQuestions = async (jobTitle: string, jobDescription: string, userProfile?: string, coverLetter?: string): Promise<string[]> => {
-  if (!apiKey) return ["Tell me about yourself.", "Why this job?"];
+  if (!apiKey) return ["Tell me about yourself."];
   try {
-    const prompt = `Generate 5 relevant interview questions for "${jobTitle}". Candidate: "${userProfile}". Return ONLY a valid JSON array of strings.`;
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+    const prompt = `Generate 5 challenging interview questions for "${jobTitle}". 
+    Description: "${jobDescription}". 
+    Candidate Profile: "${userProfile || 'Not provided'}". 
+    Cover Letter: "${coverLetter || 'Not provided'}".
+    Return ONLY JSON array of strings.`;
+    const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
     return JSON.parse(response.text || "[]");
-  } catch (error) { return ["Tell me about yourself.", "Why this job?"]; }
+  } catch (error) { return ["Tell me about yourself.", "Why are you interested in this role?"]; }
 };
 
 export const evaluateInterviewAnswer = async (question: string, answer: string, jobDescription: string): Promise<string> => {
-  if (!apiKey) return "Great answer!";
+  if (!apiKey) return "Great answer! Keep practicing.";
   try {
-    const prompt = `Evaluate this interview answer for a job in Afghanistan. Question: "${question}". Answer: "${answer}". Provide constructive feedback.`;
+    const prompt = `Act as an Interview Coach. Evaluate the following answer for a job interview. Question: "${question}". Answer: "${answer}". Job Context: "${jobDescription}". Provide feedback and a model answer.`;
     const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt });
-    return response.text || "Great job!";
-  } catch (error) { return "Error evaluating."; }
+    return response.text || "Excellent response.";
+  } catch (error) { return "Feedback unavailable."; }
 };
 
 export const analyzeJobMatch = async (jobTitle: string, jobDesc: string, userProfile: string): Promise<MatchAnalysisResult | null> => {
-    if (!apiKey) return { score: 75, reason: "Manual estimate based on profile.", strengths: [], missingSkills: [] };
+    if (!apiKey) return { score: 70, reason: "Manual estimate.", strengths: [], missingSkills: [] };
     try {
-        const prompt = `Match analysis for "${jobTitle}". Return ONLY JSON: { "score": number, "reason": "string", "strengths": ["string"], "missingSkills": ["string"] }`;
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const prompt = `Compare candidate to job. Job: "${jobTitle}". Profile: "${userProfile}". Return ONLY JSON: { "score": number, "reason": "string", "strengths": [string], "missingSkills": [string] }`;
+        const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
         return JSON.parse(response.text || "{}");
     } catch (e) { return null; }
-};
-
-export const generateCareerPath = async (currentRole: string): Promise<{title: string, steps: string[]}[]> => {
-    if (!apiKey) return [];
-    try {
-        const prompt = `Suggest 2 career paths for "${currentRole}" in the Afghan market. Return ONLY JSON array: [{title: string, steps: string[]}]`;
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
-        return JSON.parse(response.text || "[]");
-    } catch (e) { return []; }
 };
 
 export const generateSkillQuiz = async (topic: string): Promise<QuizQuestion[]> => {
     if (!apiKey) return [];
     try {
-        const prompt = `Generate 5 multiple choice questions for "${topic}". Return ONLY JSON array: [{question: string, options: string[], correctAnswer: number}]`;
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const prompt = `Generate a 5-question multiple choice quiz for the skill "${topic}". Return ONLY JSON array: [{question: string, options: [string], correctAnswer: number}]`;
+        const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
         return JSON.parse(response.text || "[]");
     } catch (e) { return []; }
 };
 
 export const analyzeArticleSEO = async (content: string, title: string): Promise<{ seoTitle: string, seoDescription: string, keywords: string[] }> => {
-    if (!apiKey) return { seoTitle: title, seoDescription: content.substring(0, 150), keywords: [] };
+    if (!apiKey) return { seoTitle: title, seoDescription: "", keywords: [] };
     try {
-        const prompt = `Generate SEO tags for: "${title}". Return ONLY JSON: { "seoTitle": "string", "seoDescription": "string", "keywords": ["string"] }`;
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: prompt,
-            config: { responseMimeType: 'application/json' }
-        });
+        const prompt = `Generate SEO tags for this blog post. Title: "${title}". Content: "${content.substring(0, 1000)}". Return ONLY JSON: { "seoTitle": "string", "seoDescription": "string", "keywords": [string] }`;
+        const response = await ai.models.generateContent({ model: DEFAULT_MODEL, contents: prompt, config: { responseMimeType: 'application/json' } });
         return JSON.parse(response.text || "{}");
-    } catch (e) { return { seoTitle: title, seoDescription: content.substring(0, 150), keywords: [] }; }
+    } catch (e) { return { seoTitle: title, seoDescription: "", keywords: [] }; }
 };

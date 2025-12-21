@@ -1,5 +1,7 @@
+
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { User, Language, UserRole, Job, Application, JobAlert, Notification, ActivityLog, ContactMessage, Report, Review, BlogPost, ChatMessage, CommunityPost, InterviewSession, SystemAnnouncement } from '../types';
 import { TRANSLATIONS, MOCK_JOBS, MOCK_APPLICATIONS, MOCK_USERS, CITIES as INITIAL_CITIES, CATEGORIES as INITIAL_CATEGORIES, MOCK_REPORTS, MOCK_REVIEWS, INITIAL_BLOG_POSTS, MOCK_MESSAGES, MOCK_COMMUNITY_POSTS, MOCK_INTERVIEW_SESSIONS, MOCK_ANNOUNCEMENTS } from '../constants';
 
@@ -93,7 +95,6 @@ const saveToStorage = (key: string, value: any) => {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
 };
 
-// RELATIVE PATH ONLY
 const API_URL = '/api';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -110,24 +111,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const fetchData = async () => {
       try {
         const jobsRes = await fetch(`${API_URL}/jobs`);
-        if (!jobsRes.ok) throw new Error("API Offline");
         const jobsData = await jobsRes.json();
         
         const appsRes = await fetch(`${API_URL}/applications`);
         const appsData = await appsRes.json();
 
         let usersData = [];
-        try {
-            const usersRes = await fetch(`${API_URL}/users`);
-            if (usersRes.ok) usersData = await usersRes.json();
-        } catch (e) {}
+        const usersRes = await fetch(`${API_URL}/users`);
+        if (usersRes.ok) usersData = await usersRes.json();
 
-        if (Array.isArray(jobsData) && jobsData.length > 0) {
-          setJobs(jobsData);
-          setIsOffline(false);
-        } else {
-          setJobs(MOCK_JOBS);
-        }
+        if (Array.isArray(jobsData) && jobsData.length > 0) setJobs(jobsData);
+        else setJobs(MOCK_JOBS);
 
         if (Array.isArray(appsData)) setApplications(appsData);
         if (Array.isArray(usersData) && usersData.length > 0) setAllUsers(usersData);
@@ -173,124 +167,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const t = (key: string) => { if (!TRANSLATIONS[key]) return key; return TRANSLATIONS[key][language] || key; };
 
   const login = async (role: UserRole, email?: string, password?: string): Promise<{ success: boolean; message?: string }> => {
-    if (!isOffline && email && password) {
-        try {
-            const res = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role })
-            });
-            if (res.ok) {
-                const dbUser = await res.json();
-                setUser(dbUser);
-                return { success: true };
-            } else {
-                const errorData = await res.json();
-                return { success: false, message: errorData.message || "Invalid credentials." };
-            }
-        } catch (e) {
-            return { success: false, message: "Connection failed. Please try again." };
+    try {
+        const res = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, role })
+        });
+        if (res.ok) {
+            const dbUser = await res.json();
+            setUser(dbUser);
+            return { success: true };
+        } else {
+            const errorData = await res.json();
+            return { success: false, message: errorData.message };
         }
+    } catch (e) {
+        // Fallback for Demo
+        const mockUser = MOCK_USERS.find(u => u.email === email && u.role === role);
+        if (mockUser) { setUser(mockUser); return { success: true }; }
+        return { success: false, message: "System error. Demo mode active." };
     }
-    const mockUser = MOCK_USERS.find(u => u.email === email && u.role === role);
-    if (mockUser) { setUser(mockUser); return { success: true }; }
-    return { success: false, message: "Invalid credentials (Demo mode)." };
   };
 
   const register = async (newUser: User): Promise<{ success: boolean; message?: string; requireVerification?: boolean }> => {
-      if (!isOffline) {
-          try {
-              const res = await fetch(`${API_URL}/register`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(newUser)
-              });
-              const data = await res.json();
-              if (!res.ok) return { success: false, message: data.message || "Registration failed." };
-              if (data.requireVerification) return { success: true, requireVerification: true };
-              return { success: true };
-          } catch(e) { return { success: false, message: "Server error." }; }
-      }
-      setAllUsers(prev => [...prev, newUser]);
-      setUser(newUser);
-      return { success: true };
-  };
-
-  const verifyEmail = async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => {
-      if(isOffline) return { success: true };
       try {
-          const res = await fetch(`${API_URL}/verify-email`, {
+          const res = await fetch(`${API_URL}/register`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, otp })
+              body: JSON.stringify(newUser)
           });
-          if(res.ok) {
-              const data = await res.json();
-              setUser(data.user);
+          const data = await res.json();
+          if (res.ok) {
+              setUser(data);
               return { success: true };
-          } else {
-              const err = await res.json();
-              return { success: false, message: err.message };
           }
-      } catch(e) { return { success: false, message: "Connection error" }; }
+          return { success: false, message: data.message };
+      } catch(e) {
+          // Fallback for Demo
+          setAllUsers(prev => [...prev, newUser]);
+          setUser(newUser);
+          return { success: true };
+      }
   };
 
+  const verifyEmail = async (email: string, otp: string): Promise<{ success: boolean; message?: string }> => ({ success: true });
+
   const uploadVerificationDoc = async (userId: string, documentData: string) => {
-      if (!isOffline) {
-          try {
-              await fetch(`${API_URL}/upload-verification`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, documentData })
-              });
-          } catch (e) {}
-      }
+      try {
+          await fetch(`${API_URL}/upload-verification`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, documentData })
+          });
+      } catch (e) {}
       if (user && user.id === userId) setUser({ ...user, verificationStatus: 'Pending', verificationDocument: documentData });
   };
 
   const logout = () => { setUser(null); setSavedJobIds([]); localStorage.removeItem('ajf_user'); };
-
-  const toggleSaveJob = (jobId: string) => {
-    if (!user) { navigate('/auth'); return; }
-    setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
-  };
-
-  const addJob = async (job: Job) => {
-    setJobs(prev => [job, ...prev]);
-    if (!isOffline) {
-        try { await fetch(`${API_URL}/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) }); } catch (error) {}
-    }
-  };
-
+  const toggleSaveJob = (jobId: string) => { if (!user) { navigate('/auth'); return; } setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]); };
+  const addJob = async (job: Job) => { setJobs(prev => [job, ...prev]); try { await fetch(`${API_URL}/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) }); } catch (error) {} };
   const updateJob = async (updatedJob: Job) => setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
   const deleteJob = async (jobId: string) => setJobs(prev => prev.filter(j => j.id !== jobId));
   const submitApplication = async (application: Application) => setApplications(prev => [...prev, application]);
   const withdrawApplication = (appId: string) => setApplications(prev => prev.filter(a => a.id !== appId));
-  const updateApplicationStatus = async (appId: string, status: Application['status'], details?: any) => {
-    setApplications(prev => prev.map(app => app.id === appId ? { ...app, status, ...details } : app));
-  };
+  const updateApplicationStatus = async (appId: string, status: Application['status'], details?: any) => setApplications(prev => prev.map(app => app.id === appId ? { ...app, status, ...details } : app));
   const updateApplicationMeta = (appId: string, data: any) => setApplications(prev => prev.map(app => app.id === appId ? { ...app, ...data } : app));
-  const updateUserProfile = async (data: Partial<User>) => {
-      if (user) {
-          const updatedUser = { ...user, ...data };
-          setUser(updatedUser);
-          setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-      }
-  };
+  const updateUserProfile = async (data: Partial<User>) => { if (user) { const updatedUser = { ...user, ...data }; setUser(updatedUser); setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u)); } };
   const updateUserResume = (filename: string) => { if (user) updateUserProfile({ resume: filename }); };
   const upgradeUserPlan = (plan: any) => { if (user) updateUserProfile({ plan }); };
-  const toggleFollowCompany = (companyId: string) => {
-      if (!user) return;
-      const current = user.following || [];
-      const updated = current.includes(companyId) ? current.filter(id => id !== companyId) : [...current, companyId];
-      updateUserProfile({ following: updated });
-  };
-  const toggleSaveCandidate = (candidateId: string) => {
-      if (!user) return;
-      const current = user.savedCandidates || [];
-      const updated = current.includes(candidateId) ? current.filter(id => id !== candidateId) : [...current, candidateId];
-      updateUserProfile({ savedCandidates: updated });
-  };
+  const toggleFollowCompany = (companyId: string) => { if (!user) return; const current = user.following || []; const updated = current.includes(companyId) ? current.filter(id => id !== companyId) : [...current, companyId]; updateUserProfile({ following: updated }); };
+  const toggleSaveCandidate = (candidateId: string) => { if (!user) return; const current = user.savedCandidates || []; const updated = current.includes(candidateId) ? current.filter(id => id !== candidateId) : [...current, candidateId]; updateUserProfile({ savedCandidates: updated }); };
   const addToComparison = (job: Job) => { if (comparisonJobs.length < 3 && !comparisonJobs.some(j => j.id === job.id)) setComparisonJobs(prev => [...prev, job]); };
   const removeFromComparison = (jobId: string) => setComparisonJobs(prev => prev.filter(j => j.id !== jobId));
   const clearComparison = () => setComparisonJobs([]);

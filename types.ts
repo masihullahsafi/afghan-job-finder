@@ -1,4 +1,5 @@
 
+
 export type Language = 'en' | 'fa' | 'ps';
 
 export enum UserRole {
@@ -28,7 +29,7 @@ export interface UserDocument {
   id: string;
   name: string;
   type: 'Resume' | 'Certificate' | 'Cover Letter' | 'Other';
-  data: string; // Base64
+  data: string; // URL or Base64
   date: string;
   size?: string;
 }
@@ -49,8 +50,9 @@ export interface User {
   role: UserRole;
   password?: string; 
   avatar?: string;
-  resume?: string;
-  resumeData?: string; 
+  resume?: string;      // Filename
+  resumeData?: string;  // Base64 Data
+  resumeUrl?: string;   // Cloudinary URL or Link
   phone?: string;
   mobile?: string; 
   country?: string; 
@@ -62,7 +64,7 @@ export interface User {
   status?: 'Active' | 'Pending' | 'Suspended';
   isVerified?: boolean; 
   verificationStatus?: 'Unverified' | 'Pending' | 'Verified'; 
-  verificationDocument?: string; // New: Stores Base64 of license
+  verificationDocument?: string; 
   website?: string;
   description?: string;
   industry?: string;
@@ -83,18 +85,6 @@ export interface User {
   documents?: UserDocument[]; 
   messageTemplates?: { id: string; name: string; content: string }[];
   settings?: UserSettings; 
-}
-
-export interface Company {
-  id: string;
-  name: string;
-  logo: string;
-  industry: string;
-  location: string;
-  description: string;
-  website: string;
-  employeeCount: string;
-  foundedYear: string;
 }
 
 export interface Job {
@@ -121,8 +111,6 @@ export interface Job {
   screeningQuestions?: string[];
   applyMethod?: 'Internal' | 'External' | 'Email';
   applyUrl?: string; 
-  
-  // Detailed Fields
   vacancyNumber?: string;
   noOfJobs?: number;
   contractDuration?: string;
@@ -134,6 +122,7 @@ export interface Job {
   yearsOfExperience?: string; 
 }
 
+// Added ApplicationTimeline interface for tracking application status updates
 export interface ApplicationTimeline {
   status: string;
   date: string;
@@ -153,99 +142,9 @@ export interface Application {
   interviewDate?: string;
   interviewTime?: string;
   interviewMessage?: string;
-  interviewLocation?: string;
-  employerNotes?: string;
-  employerRating?: number; 
-  timeline?: ApplicationTimeline[]; 
   rejectionReason?: string; 
-}
-
-export interface JobAlert {
-  id: string;
-  seekerId: string;
-  keyword: string;
-  location: string;
-  category: string;
-  frequency: 'Daily' | 'Weekly' | 'Instant';
-  createdAt: string;
-}
-
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'Alert' | 'Application' | 'System';
-  isRead: boolean;
-  date: string;
-  link?: string;
-}
-
-export interface ActivityLog {
-  id: string;
-  adminName: string;
-  action: string;
-  details: string;
-  timestamp: string;
-}
-
-export interface ContactMessage {
-  id: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  date: string;
-  read: boolean;
-}
-
-export interface ChatMessage {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-  relatedJobId?: string;
-}
-
-export interface Report {
-  id: string;
-  jobId: string;
-  reason: string;
-  details: string;
-  status: 'Pending' | 'Resolved';
-  date: string;
-}
-
-export interface Review {
-  id: string;
-  companyId: string;
-  userId: string;
-  userName: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
-
-export interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: number; 
-}
-
-export interface InterviewSession {
-  id: string;
-  userId: string;
-  jobTitle: string;
-  companyName: string;
-  date: string;
-  transcript: {
-    question: string;
-    answer: string;
-    feedback: string;
-  }[];
-  score: number; 
+  // Added timeline to match property usage in mock data
+  timeline?: ApplicationTimeline[];
 }
 
 export interface BlogPost {
@@ -266,23 +165,6 @@ export interface BlogPost {
   seoKeywords?: string[];
 }
 
-export interface TranslationDictionary {
-  [key: string]: {
-    en: string;
-    fa: string;
-    ps: string;
-  };
-}
-
-export interface Comment {
-  id: string;
-  authorId: string;
-  authorName: string;
-  authorAvatar?: string;
-  content: string;
-  timestamp: string;
-}
-
 export interface CommunityPost {
   id: string;
   authorId: string;
@@ -292,7 +174,7 @@ export interface CommunityPost {
   content: string;
   image?: string;
   likes: string[]; 
-  comments: Comment[];
+  comments: any[];
   timestamp: string;
 }
 
@@ -318,4 +200,104 @@ export interface Event {
   image: string;
   attendees: number;
   category: string;
+}
+
+export interface TranslationDictionary {
+  [key: string]: {
+    en: string;
+    fa: string;
+    ps: string;
+  };
+}
+
+export interface Report {
+  id: string;
+  jobId: string;
+  reason: string;
+  details: string;
+  status: 'Pending' | 'Resolved';
+  date: string;
+}
+
+export interface Review {
+  id: string;
+  companyId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  timestamp: string;
+  isRead: boolean;
+  relatedJobId?: string;
+}
+
+export interface InterviewSession {
+  id: string;
+  userId: string;
+  jobTitle: string;
+  companyName: string;
+  date: string;
+  transcript: {
+    question: string;
+    answer: string;
+    feedback: string;
+  }[];
+  score: number; 
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number; 
+}
+
+// Added JobAlert interface to resolve import errors in AppContext
+export interface JobAlert {
+  id: string;
+  userId: string;
+  keyword?: string;
+  location?: string;
+  category?: string;
+  type?: string;
+  frequency: 'Daily' | 'Weekly' | 'Instant';
+  isActive: boolean;
+}
+
+// Added Notification interface for system notifications
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  date: string;
+  isRead: boolean;
+  link?: string;
+}
+
+// Added ActivityLog interface for auditing user actions
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  action: string;
+  details: string;
+  timestamp: string;
+}
+
+// Added ContactMessage interface for form submissions in Contact.tsx
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  date: string;
+  read: boolean;
 }
